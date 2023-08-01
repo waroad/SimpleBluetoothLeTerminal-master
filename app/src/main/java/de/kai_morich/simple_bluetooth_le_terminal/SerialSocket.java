@@ -83,7 +83,7 @@ class SerialSocket extends BluetoothGattCallback {
     private boolean connected;
     private int payloadSize = DEFAULT_MTU-3;
 
-    private MediaPlayer mediaPlayer;
+    private MediaPlayer mediaPlayer; // 수정
     SerialSocket(Context context, BluetoothDevice device) {
         if(context instanceof Activity)
             throw new InvalidParameterException("expected non UI context");
@@ -345,8 +345,7 @@ class SerialSocket extends BluetoothGattCallback {
             byte[] data = readCharacteristic.getValue();
             onSerialRead(data);
             Log.d(TAG,"read, len="+data.length);
-            Log.d(TAG,"######"+readCharacteristic.getStringValue(1)+"##"+readCharacteristic.getStringValue(0));
-
+            // 수정
             if (readCharacteristic.getStringValue(0).equals("play\n")) {
                 mediaPlayer = MediaPlayer.create(context, R.raw.a);
                 mediaPlayer.start();

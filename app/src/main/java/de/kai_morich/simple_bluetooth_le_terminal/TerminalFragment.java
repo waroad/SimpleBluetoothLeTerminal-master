@@ -60,7 +60,7 @@ public class TerminalFragment extends Fragment implements ServiceConnection, Ser
 
     @Override
     public void onDestroy() {
-//        if (connected != Connected.False)
+//        if (connected != Connected.False)  수정
 //            disconnect();
 //        getActivity().stopService(new Intent(getActivity(), SerialService.class));
         super.onDestroy();
