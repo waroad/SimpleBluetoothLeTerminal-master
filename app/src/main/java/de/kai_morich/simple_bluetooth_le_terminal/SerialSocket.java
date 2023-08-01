@@ -344,7 +344,7 @@ class SerialSocket extends BluetoothGattCallback {
         if(characteristic == readCharacteristic) { // NOPMD - test object identity
             byte[] data = readCharacteristic.getValue();
             onSerialRead(data);
-            Log.d(TAG,"read, len="+data.length); 
+            Log.d(TAG,"read, len="+data.length);
             Log.d(TAG,"######"+readCharacteristic.getStringValue(1)+"##"+readCharacteristic.getStringValue(0));
 
             if (readCharacteristic.getStringValue(0).equals("play\n")) {
