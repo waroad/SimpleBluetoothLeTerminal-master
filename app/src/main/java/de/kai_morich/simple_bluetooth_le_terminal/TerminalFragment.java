@@ -187,6 +187,8 @@ public class TerminalFragment extends Fragment implements ServiceConnection, Ser
             connected = Connected.Pending;
             SerialSocket socket = new SerialSocket(getActivity().getApplicationContext(), device);
             service.connect(socket);
+            socket.enableAutoConnect(true);
+
         } catch (Exception e) {
             onSerialConnectError(e);
         }

@@ -2,6 +2,7 @@ package de.kai_morich.simple_bluetooth_le_terminal;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
@@ -9,6 +10,11 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanFilter;
+import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -19,8 +25,10 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.security.InvalidParameterException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.UUID;
 
 /**
@@ -34,6 +42,7 @@ class SerialSocket extends BluetoothGattCallback {
     /**
      * delegate device specific behaviour to inner class
      */
+    private volatile BluetoothDevice device;
     private static class DeviceDelegate {
         boolean connectCharacteristics(BluetoothGattService s) { return true; }
         // following methods only overwritten for Telit devices
@@ -74,9 +83,9 @@ class SerialSocket extends BluetoothGattCallback {
     private final Context context;
     private SerialListener listener;
     private DeviceDelegate delegate;
-    private BluetoothDevice device;
     private BluetoothGatt gatt;
     private BluetoothGattCharacteristic readCharacteristic, writeCharacteristic;
+    private BluetoothGattCharacteristic readCharacteristic1, writeCharacteristic1;
 
     private boolean writePending;
     private boolean canceled;
@@ -84,6 +93,84 @@ class SerialSocket extends BluetoothGattCallback {
     private int payloadSize = DEFAULT_MTU-3;
 
     private MediaPlayer mediaPlayer; // 수정
+
+    private BluetoothLeScanner bluetoothLeScanner;
+    private ScanCallback scanCallback;
+    private String targetDeviceName = "gg"; // Replace with the actual name of your target BLE device
+
+    void enableAutoConnect(boolean enabled) {
+        if (enabled) {
+            startBleScan();
+        } else {
+            stopBleScan();
+        }
+    }
+
+    private void startBleScan() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            bluetoothLeScanner = BluetoothAdapter.getDefaultAdapter().getBluetoothLeScanner();
+            if (bluetoothLeScanner != null) {
+                ScanFilter scanFilter = new ScanFilter.Builder()
+                        .setDeviceName(targetDeviceName)
+                        .build();
+                ScanSettings scanSettings = new ScanSettings.Builder()
+                        .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                        .build();
+
+                scanCallback = new ScanCallback() {
+                    @Override
+                    public void onScanResult(int callbackType, ScanResult result) {
+                        super.onScanResult(callbackType, result);
+                        device = result.getDevice();
+                        if (device != null && device.getName() != null && device.getName().equals(targetDeviceName)) {
+                            Log.d(TAG, "Target device found: " + device.getName() + " (" + device.getAddress() + ")");
+                            // Stop scanning and initiate connection to the device
+                            stopBleScan();
+                            connectToGattServer(device);
+                        }
+                    }
+
+                    @Override
+                    public void onScanFailed(int errorCode) {
+                        super.onScanFailed(errorCode);
+                        Log.e(TAG, "BLE scan failed with error code: " + errorCode);
+                    }
+                };
+
+                bluetoothLeScanner.startScan(Collections.singletonList(scanFilter), scanSettings, scanCallback);
+            } else {
+                Log.e(TAG, "Bluetooth LE scanner is not available on this device.");
+            }
+        } else {
+            Log.e(TAG, "Bluetooth LE scanning requires Android Lollipop (API level 21) or higher.");
+        }
+    }
+
+    private void stopBleScan() {
+        if (bluetoothLeScanner != null && scanCallback != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                Log.d(TAG,"##########ffdffffffff");
+                bluetoothLeScanner.stopScan(scanCallback);
+            }
+            scanCallback = null;
+        }
+    }
+    private SerialSocket socket1;
+    private void connectToGattServer(BluetoothDevice device) {
+        // Disconnect from any existing GATT server
+//        disconnect();
+        Log.d(TAG, "Reconnecting...");
+        // Connect to the selected BLE device
+        try {
+            Log.d(TAG, "Reconnecting...");
+            connect(listener);
+        } catch (IOException e) {
+            e.printStackTrace();
+            // Connection failed, handle error
+        }
+    }
+
+
     SerialSocket(Context context, BluetoothDevice device) {
         if(context instanceof Activity)
             throw new InvalidParameterException("expected non UI context");
@@ -104,7 +191,7 @@ class SerialSocket extends BluetoothGattCallback {
             public void onReceive(Context context, Intent intent) {
                 if(listener != null)
                     listener.onSerialIoError(new IOException("background disconnect"));
-                disconnect(); // disconnect now, else would be queued until UI re-attached
+//                disconnect(); // disconnect now, else would be queued until UI re-attached
             }
         };
 
@@ -115,7 +202,7 @@ class SerialSocket extends BluetoothGattCallback {
     }
 
     void disconnect() {
-        Log.d(TAG, "disconnect");
+        Log.d(TAG, "disconnec1111111t");
         listener = null; // ignore remaining data and errors
         device = null;
         canceled = true;
@@ -157,13 +244,11 @@ class SerialSocket extends BluetoothGattCallback {
         this.listener = listener;
         context.registerReceiver(disconnectBroadcastReceiver, new IntentFilter(Constants.INTENT_ACTION_DISCONNECT));
         Log.d(TAG, "##### connect "+device);
-        if (device.toString().equals("9C:1D:58:9F:36:0A"))
-            Log.d(TAG, "##### wwowowowowwwwwwwwww");
-
+        targetDeviceName=device.getName();
         context.registerReceiver(pairingBroadcastReceiver, pairingIntentFilter);
         if (Build.VERSION.SDK_INT < 23) {
             Log.d(TAG, "connectGatt");
-            gatt = device.connectGatt(context, false, this);
+            gatt = device.connectGatt(context, true, this);
         } else {
             Log.d(TAG, "connectGatt,LE");
             gatt = device.connectGatt(context, true, this, BluetoothDevice.TRANSPORT_LE);
@@ -205,9 +290,10 @@ class SerialSocket extends BluetoothGattCallback {
             if (!gatt.discoverServices())
                 onSerialConnectError(new IOException("discoverServices failed"));
         } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-            Log.d(TAG,"########## how");
-            if (connected)
-                onSerialIoError     (new IOException("gatt status " + status));
+            if (connected) {
+                Log.d(TAG,"ddddddddddddddddddddhow");
+                onSerialIoError(new IOException("gatt status " + status));
+            }
             else
                 onSerialConnectError(new IOException("gatt status " + status));
         } else {
@@ -219,12 +305,14 @@ class SerialSocket extends BluetoothGattCallback {
     @Override
     public void onServicesDiscovered(BluetoothGatt gatt, int status) {
         Log.d(TAG, "servicesDiscovered, status " + status);
-        if (canceled)
-            return;
+//        canceled=false;
+//        if (canceled)
+//            return;
         connectCharacteristics1(gatt);
     }
 
     private void connectCharacteristics1(BluetoothGatt gatt) {
+        Log.d(TAG,"HORRRRRRRRAY");
         boolean sync = true;
         writePending = false;
         for (BluetoothGattService gattService : gatt.getServices()) {
@@ -242,8 +330,15 @@ class SerialSocket extends BluetoothGattCallback {
                 break;
             }
         }
-        if(canceled)
-            return;
+        Log.d(TAG,sync+"*****************1"+delegate+readCharacteristic+writeCharacteristic);
+        if(!canceled){
+            readCharacteristic1=readCharacteristic;
+            writeCharacteristic1=writeCharacteristic;
+        }
+        else{
+            readCharacteristic=readCharacteristic1;
+            writeCharacteristic=writeCharacteristic1;
+        }
         if(delegate==null || readCharacteristic==null || writeCharacteristic==null) {
             for (BluetoothGattService gattService : gatt.getServices()) {
                 Log.d(TAG, "service "+gattService.getUuid());
@@ -253,11 +348,13 @@ class SerialSocket extends BluetoothGattCallback {
             onSerialConnectError(new IOException("no serial profile found"));
             return;
         }
+        Log.d(TAG,sync+"*****************2");
         if(sync)
             connectCharacteristics2(gatt);
     }
 
     private void connectCharacteristics2(BluetoothGatt gatt) {
+        Log.d(TAG,"HORRRRRRRRAY2222");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             Log.d(TAG, "request max MTU");
             if (!gatt.requestMtu(MAX_MTU))
@@ -279,6 +376,7 @@ class SerialSocket extends BluetoothGattCallback {
     }
 
     private void connectCharacteristics3(BluetoothGatt gatt) {
+        Log.d(TAG,"HORRRRRRRRAY333333");
         int writeProperties = writeCharacteristic.getProperties();
         if((writeProperties & (BluetoothGattCharacteristic.PROPERTY_WRITE +     // Microbit,HM10-clone have WRITE
                 BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) ==0) { // HM10,TI uart,Telit have only WRITE_NO_RESPONSE
@@ -336,9 +434,14 @@ class SerialSocket extends BluetoothGattCallback {
      */
     @Override
     public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-        if(canceled)
-            return;
+        Log.d(TAG,"HORRRRRRRRAYccccccc");
+        Log.d(TAG,"ggg"+canceled);
+        if(canceled){
+            canceled=false;
+            readCharacteristic=characteristic;
+        }
         delegate.onCharacteristicChanged(gatt, characteristic);
+        Log.d(TAG,"ggg2"+canceled+characteristic+"****"+readCharacteristic);
         if(canceled)
             return;
         if(characteristic == readCharacteristic) { // NOPMD - test object identity

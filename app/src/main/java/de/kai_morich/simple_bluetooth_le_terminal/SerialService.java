@@ -87,12 +87,12 @@ public class SerialService extends Service implements SerialListener {
     }
 
     public void disconnect() {
-        connected = false; // ignore data,errors while disconnecting
+//        connected = false; // ignore data,errors while disconnecting
         cancelNotification();
-        if(socket != null) {
-            socket.disconnect();
-            socket = null;
-        }
+//        if(socket != null) {
+//            socket.disconnect();
+//            socket = null;
+//        }
     }
 
     public void write(byte[] data) throws IOException {
