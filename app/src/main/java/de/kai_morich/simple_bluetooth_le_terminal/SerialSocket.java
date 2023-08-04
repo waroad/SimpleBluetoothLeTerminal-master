@@ -85,7 +85,6 @@ class SerialSocket extends BluetoothGattCallback {
     private DeviceDelegate delegate;
     private BluetoothGatt gatt;
     private BluetoothGattCharacteristic readCharacteristic, writeCharacteristic;
-    private BluetoothGattCharacteristic readCharacteristic1, writeCharacteristic1;
 
     private boolean writePending;
     private boolean canceled;
@@ -160,9 +159,10 @@ class SerialSocket extends BluetoothGattCallback {
         // Disconnect from any existing GATT server
 //        disconnect();
         Log.d(TAG, "Reconnecting...");
+        disconnect();
         // Connect to the selected BLE device
         try {
-            Log.d(TAG, "Reconnecting...");
+            Log.d(TAG, "Reconnecting2...");
             connect(listener);
         } catch (IOException e) {
             e.printStackTrace();
@@ -203,9 +203,9 @@ class SerialSocket extends BluetoothGattCallback {
 
     void disconnect() {
         Log.d(TAG, "disconnec1111111t");
-        listener = null; // ignore remaining data and errors
-        device = null;
-        canceled = true;
+//        listener = null; // ignore remaining data and errors
+//        device = null;
+//        canceled = true;
         synchronized (writeBuffer) {
             writePending = false;
             writeBuffer.clear();
@@ -285,6 +285,7 @@ class SerialSocket extends BluetoothGattCallback {
     @Override
     public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
         // status directly taken from gat_api.h, e.g. 133=0x85=GATT_ERROR ~= timeout
+        Log.d(TAG,"onConnectionStateChangeonConnectionStateChangeonConnectionStateChange");
         if (newState == BluetoothProfile.STATE_CONNECTED) {
             Log.d(TAG,"connect status "+status+", discoverServices");
             if (!gatt.discoverServices())
@@ -305,9 +306,7 @@ class SerialSocket extends BluetoothGattCallback {
     @Override
     public void onServicesDiscovered(BluetoothGatt gatt, int status) {
         Log.d(TAG, "servicesDiscovered, status " + status);
-//        canceled=false;
-//        if (canceled)
-//            return;
+        canceled=false;
         connectCharacteristics1(gatt);
     }
 
@@ -315,6 +314,8 @@ class SerialSocket extends BluetoothGattCallback {
         Log.d(TAG,"HORRRRRRRRAY");
         boolean sync = true;
         writePending = false;
+        delegate=null;
+        Log.d(TAG,sync+"*****************1"+delegate+readCharacteristic+writeCharacteristic);
         for (BluetoothGattService gattService : gatt.getServices()) {
             if (gattService.getUuid().equals(BLUETOOTH_LE_CC254X_SERVICE))
                 delegate = new Cc245XDelegate();
@@ -330,15 +331,7 @@ class SerialSocket extends BluetoothGattCallback {
                 break;
             }
         }
-        Log.d(TAG,sync+"*****************1"+delegate+readCharacteristic+writeCharacteristic);
-        if(!canceled){
-            readCharacteristic1=readCharacteristic;
-            writeCharacteristic1=writeCharacteristic;
-        }
-        else{
-            readCharacteristic=readCharacteristic1;
-            writeCharacteristic=writeCharacteristic1;
-        }
+         Log.d(TAG,sync+"*****************1"+delegate+readCharacteristic+writeCharacteristic);
         if(delegate==null || readCharacteristic==null || writeCharacteristic==null) {
             for (BluetoothGattService gattService : gatt.getServices()) {
                 Log.d(TAG, "service "+gattService.getUuid());
@@ -348,7 +341,6 @@ class SerialSocket extends BluetoothGattCallback {
             onSerialConnectError(new IOException("no serial profile found"));
             return;
         }
-        Log.d(TAG,sync+"*****************2");
         if(sync)
             connectCharacteristics2(gatt);
     }
