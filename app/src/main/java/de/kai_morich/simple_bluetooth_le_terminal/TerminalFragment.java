@@ -4,10 +4,13 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.text.Editable;
@@ -15,6 +18,7 @@ import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.method.ScrollingMovementMethod;
 import android.text.style.ForegroundColorSpan;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -27,9 +31,11 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.util.ArrayDeque;
-
+import android.bluetooth.BluetoothAdapter;
+import android.content.IntentFilter;
 public class TerminalFragment extends Fragment implements ServiceConnection, SerialListener {
 
     private enum Connected { False, Pending, True }
@@ -47,6 +53,18 @@ public class TerminalFragment extends Fragment implements ServiceConnection, Ser
     private boolean pendingNewline = false;
     private String newline = TextUtil.newline_crlf;
 
+
+    private BroadcastReceiver bluetoothStateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if ("bluetooth_state_changed".equals(action)) {
+                BluetoothStateReceiver bluetoothStateReceiver = new BluetoothStateReceiver();
+                bluetoothStateReceiver.startService(context); // Pass the context to the receiver
+                connect();
+            }
+        }
+    };
     /*
      * Lifecycle
      */
@@ -60,15 +78,20 @@ public class TerminalFragment extends Fragment implements ServiceConnection, Ser
 
     @Override
     public void onDestroy() {
-//        if (connected != Connected.False)  수정
-//            disconnect();
-//        getActivity().stopService(new Intent(getActivity(), SerialService.class));
+//        Log.d("here","ondestroy");
+        if (connected != Connected.False)  //수정
+            disconnect();
+        getActivity().stopService(new Intent(getActivity(), SerialService.class));
         super.onDestroy();
     }
 
     @Override
     public void onStart() {
         super.onStart();
+        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(
+                bluetoothStateReceiver,
+                new IntentFilter("bluetooth_state_changed")
+        );
         if(service != null)
             service.attach(this);
         else
@@ -77,6 +100,8 @@ public class TerminalFragment extends Fragment implements ServiceConnection, Ser
 
     @Override
     public void onStop() {
+        LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(bluetoothStateReceiver);
+
         if(service != null && !getActivity().isChangingConfigurations())
             service.detach();
         super.onStop();
@@ -187,7 +212,6 @@ public class TerminalFragment extends Fragment implements ServiceConnection, Ser
             connected = Connected.Pending;
             SerialSocket socket = new SerialSocket(getActivity().getApplicationContext(), device);
             service.connect(socket);
-            socket.enableAutoConnect(true);
 
         } catch (Exception e) {
             onSerialConnectError(e);

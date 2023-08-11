@@ -88,8 +88,9 @@ public class SerialService extends Service implements SerialListener {
 
     public void disconnect() {
 //        connected = false; // ignore data,errors while disconnecting
-        cancelNotification();
+//        cancelNotification();
 //        if(socket != null) {
+//            Log.d("wowowow","disconnect from out");
 //            socket.disconnect();
 //            socket = null;
 //        }

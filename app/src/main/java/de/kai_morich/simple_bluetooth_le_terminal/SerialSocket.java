@@ -25,12 +25,10 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.security.InvalidParameterException;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
-
 /**
  * wrap BLE communication into socket like class
  *   - connect, disconnect and write as methods,
@@ -92,83 +90,9 @@ class SerialSocket extends BluetoothGattCallback {
     private int payloadSize = DEFAULT_MTU-3;
 
     private MediaPlayer mediaPlayer; // 수정
-
+    private int songPlayed=0;
     private BluetoothLeScanner bluetoothLeScanner;
     private ScanCallback scanCallback;
-    private String targetDeviceName = "gg"; // Replace with the actual name of your target BLE device
-
-    void enableAutoConnect(boolean enabled) {
-        if (enabled) {
-            startBleScan();
-        } else {
-            stopBleScan();
-        }
-    }
-
-    private void startBleScan() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            bluetoothLeScanner = BluetoothAdapter.getDefaultAdapter().getBluetoothLeScanner();
-            if (bluetoothLeScanner != null) {
-                ScanFilter scanFilter = new ScanFilter.Builder()
-                        .setDeviceName(targetDeviceName)
-                        .build();
-                ScanSettings scanSettings = new ScanSettings.Builder()
-                        .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-                        .build();
-
-                scanCallback = new ScanCallback() {
-                    @Override
-                    public void onScanResult(int callbackType, ScanResult result) {
-                        super.onScanResult(callbackType, result);
-                        device = result.getDevice();
-                        if (device != null && device.getName() != null && device.getName().equals(targetDeviceName)) {
-                            Log.d(TAG, "Target device found: " + device.getName() + " (" + device.getAddress() + ")");
-                            // Stop scanning and initiate connection to the device
-                            stopBleScan();
-                            connectToGattServer(device);
-                        }
-                    }
-
-                    @Override
-                    public void onScanFailed(int errorCode) {
-                        super.onScanFailed(errorCode);
-                        Log.e(TAG, "BLE scan failed with error code: " + errorCode);
-                    }
-                };
-
-                bluetoothLeScanner.startScan(Collections.singletonList(scanFilter), scanSettings, scanCallback);
-            } else {
-                Log.e(TAG, "Bluetooth LE scanner is not available on this device.");
-            }
-        } else {
-            Log.e(TAG, "Bluetooth LE scanning requires Android Lollipop (API level 21) or higher.");
-        }
-    }
-
-    private void stopBleScan() {
-        if (bluetoothLeScanner != null && scanCallback != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                Log.d(TAG,"##########ffdffffffff");
-                bluetoothLeScanner.stopScan(scanCallback);
-            }
-            scanCallback = null;
-        }
-    }
-    private SerialSocket socket1;
-    private void connectToGattServer(BluetoothDevice device) {
-        // Disconnect from any existing GATT server
-//        disconnect();
-        Log.d(TAG, "Reconnecting...");
-        disconnect();
-        // Connect to the selected BLE device
-        try {
-            Log.d(TAG, "Reconnecting2...");
-            connect(listener);
-        } catch (IOException e) {
-            e.printStackTrace();
-            // Connection failed, handle error
-        }
-    }
 
 
     SerialSocket(Context context, BluetoothDevice device) {
@@ -244,7 +168,6 @@ class SerialSocket extends BluetoothGattCallback {
         this.listener = listener;
         context.registerReceiver(disconnectBroadcastReceiver, new IntentFilter(Constants.INTENT_ACTION_DISCONNECT));
         Log.d(TAG, "##### connect "+device);
-        targetDeviceName=device.getName();
         context.registerReceiver(pairingBroadcastReceiver, pairingIntentFilter);
         if (Build.VERSION.SDK_INT < 23) {
             Log.d(TAG, "connectGatt");
@@ -331,7 +254,7 @@ class SerialSocket extends BluetoothGattCallback {
                 break;
             }
         }
-         Log.d(TAG,sync+"*****************1"+delegate+readCharacteristic+writeCharacteristic);
+        Log.d(TAG,sync+"*****************1"+delegate+readCharacteristic+writeCharacteristic);
         if(delegate==null || readCharacteristic==null || writeCharacteristic==null) {
             for (BluetoothGattService gattService : gatt.getServices()) {
                 Log.d(TAG, "service "+gattService.getUuid());
@@ -427,26 +350,26 @@ class SerialSocket extends BluetoothGattCallback {
     @Override
     public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
         Log.d(TAG,"HORRRRRRRRAYccccccc");
-        Log.d(TAG,"ggg"+canceled);
-        if(canceled){
-            canceled=false;
-            readCharacteristic=characteristic;
-        }
+        Log.d(TAG,"ggg"+canceled+songPlayed);
         delegate.onCharacteristicChanged(gatt, characteristic);
         Log.d(TAG,"ggg2"+canceled+characteristic+"****"+readCharacteristic);
-        if(canceled)
-            return;
+//        if(canceled)
+//            return;
         if(characteristic == readCharacteristic) { // NOPMD - test object identity
             byte[] data = readCharacteristic.getValue();
             onSerialRead(data);
             Log.d(TAG,"read, len="+data.length);
+            Log.d(TAG, device.getBondState()+"dd");
             // 수정
-            if (readCharacteristic.getStringValue(0).equals("play\n")) {
+            if (songPlayed==0) {
                 mediaPlayer = MediaPlayer.create(context, R.raw.a);
                 mediaPlayer.start();
+                songPlayed=1;
             }
-            else
+            else{
                 mediaPlayer.stop();
+                songPlayed=0;
+            }
 
         }
     }
@@ -538,7 +461,7 @@ class SerialSocket extends BluetoothGattCallback {
     }
 
     private void onSerialConnectError(Exception e) {
-        canceled = true;
+//        canceled = true;
         if (listener != null)
             listener.onSerialConnectError(e);
     }
@@ -550,7 +473,7 @@ class SerialSocket extends BluetoothGattCallback {
 
     private void onSerialIoError(Exception e) {
         writePending = false;
-        canceled = true;
+//        canceled = true;
         if (listener != null)
             listener.onSerialIoError(e);
     }
