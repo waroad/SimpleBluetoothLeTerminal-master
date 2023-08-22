@@ -19,7 +19,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioAttributes;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.media.SoundPool;
 import android.os.Build;
 import android.util.Log;
 
@@ -93,6 +96,8 @@ class SerialSocket extends BluetoothGattCallback {
     private int songPlayed=0;
     private BluetoothLeScanner bluetoothLeScanner;
     private ScanCallback scanCallback;
+    private SoundPool soundPool;
+    private int soundID;
 
 
     SerialSocket(Context context, BluetoothDevice device) {
@@ -118,6 +123,7 @@ class SerialSocket extends BluetoothGattCallback {
 //                disconnect(); // disconnect now, else would be queued until UI re-attached
             }
         };
+
 
     }
 
@@ -343,36 +349,85 @@ class SerialSocket extends BluetoothGattCallback {
             }
         }
     }
+    private void initializeSoundPool() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build();
 
+            soundPool = new SoundPool.Builder()
+                    .setMaxStreams(1)
+                    .setAudioAttributes(audioAttributes)
+                    .build();
+        } else {
+            soundPool = new SoundPool(1, AudioManager.STREAM_ALARM, 0);
+        }
+    }
     /*
      * read
      */
     @Override
     public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-        Log.d(TAG,"HORRRRRRRRAYccccccc");
-        Log.d(TAG,"ggg"+canceled+songPlayed);
+        Log.d(TAG, "HORRRRRRRRAYccccccc");
+        Log.d(TAG, "ggg" + canceled + songPlayed);
         delegate.onCharacteristicChanged(gatt, characteristic);
-        Log.d(TAG,"ggg2"+canceled+characteristic+"****"+readCharacteristic);
-//        if(canceled)
-//            return;
-        if(characteristic == readCharacteristic) { // NOPMD - test object identity
+        Log.d(TAG, "ggg2" + canceled + characteristic + "****" + readCharacteristic);
+
+        if (characteristic == readCharacteristic) {
             byte[] data = readCharacteristic.getValue();
             onSerialRead(data);
-            Log.d(TAG,"read, len="+data.length);
-            Log.d(TAG, device.getBondState()+"dd");
-            // 수정
-            if (songPlayed==0) {
-                mediaPlayer = MediaPlayer.create(context, R.raw.a);
-                mediaPlayer.start();
-                songPlayed=1;
-            }
-            else{
-                mediaPlayer.stop();
-                songPlayed=0;
+            Log.d(TAG, "read, len=" + data.length);
+            Log.d(TAG, device.getBondState() + "dd");
+
+            if (songPlayed == 0 && readCharacteristic.getStringValue(0).equals("start")) {
+                initializeSoundPool();
+                soundID = soundPool.load(context, R.raw.a, 1);
+                soundPool.setOnLoadCompleteListener((soundPool, sampleId, status) -> {
+                    if (status == 0) { // Success
+                        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+                        float maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
+                        float volume = maxVolume / 150.0f; // Assuming maxVolume is 15
+
+                        soundPool.play(soundID, volume, volume, 1, 0, 1.0f);
+                        songPlayed = 1;
+                    }
+                });
+            } else if (songPlayed == 1 && readCharacteristic.getStringValue(0).equals("stop")) {
+                soundPool.release(); // Release the current SoundPool
+                songPlayed = 0;
             }
 
         }
     }
+//    public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+//        Log.d(TAG,"HORRRRRRRRAYccccccc");
+//        Log.d(TAG,"ggg"+canceled+songPlayed);
+//        delegate.onCharacteristicChanged(gatt, characteristic);
+//        Log.d(TAG,"ggg2"+canceled+characteristic+"****"+readCharacteristic);
+////        if(canceled)
+////            return;
+//        if(characteristic == readCharacteristic) { // NOPMD - test object identity
+//            byte[] data = readCharacteristic.getValue();
+//            onSerialRead(data);
+//            Log.d(TAG,"read, len="+data.length);
+//            Log.d(TAG, device.getBondState()+"dd");
+//            // 수정
+//
+//            if (songPlayed==0 && readCharacteristic.getStringValue(0).equals("start")) {
+//                mediaPlayer = MediaPlayer.create(context, R.raw.a);
+//                mediaPlayer.start();
+//                songPlayed=1;
+//            }
+//            else if(songPlayed==1 && readCharacteristic.getStringValue(0).equals("stop")) {
+//                mediaPlayer.stop();
+//                mediaPlayer.release();
+//                mediaPlayer=null;
+//                songPlayed=0;
+//            }
+//
+//        }
+//    }
 
     /*
      * write
