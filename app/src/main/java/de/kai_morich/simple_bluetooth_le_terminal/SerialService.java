@@ -1,7 +1,5 @@
 package de.kai_morich.simple_bluetooth_le_terminal;
 
-import static androidx.core.content.ContentProviderCompat.requireContext;
-
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -19,7 +17,6 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
-
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
@@ -60,7 +57,6 @@ public class SerialService extends Service implements SerialListener {
     private SerialSocket socket;
     private SerialListener listener;
     private boolean connected;
-
     private boolean existed=false;
     private String deviceAddress;
 
@@ -70,7 +66,7 @@ public class SerialService extends Service implements SerialListener {
                 bluetoothStateReceiver,
                 new IntentFilter("bluetooth_state_changed")
         );
-        Log.d("ttttttt","Some message to log"+deviceAddress);
+        Log.d("SerialService","onStartCommand called, deviceAddress: "+deviceAddress);
         return START_STICKY;
     }
 
@@ -78,21 +74,22 @@ public class SerialService extends Service implements SerialListener {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            Log.d("dddddddddd","eee"+ deviceAddress);
             if ("bluetooth_state_changed".equals(action) && !existed){
-                Log.d("d22222222","eee"+ deviceAddress);
                 BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
                 BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddress);
-                SerialSocket socket = new SerialSocket(getApplicationContext(), device);
+                SerialSocket socket = null;
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+                    socket = new SerialSocket(getApplicationContext(), device);
+                }
                 existed=true;
                 try {
+                    assert socket != null;
                     connect(socket);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
             }
             else{
-                Log.d("d3333333","eee"+ deviceAddress);
                 existed=false;
             }
         }
@@ -135,7 +132,6 @@ public class SerialService extends Service implements SerialListener {
 //        connected = false; // ignore data,errors while disconnecting
 //        cancelNotification();
 //        if(socket != null) {
-//            Log.d("wowowow","disconnect from out");
 //            socket.disconnect();
 //            socket = null;
 //        }
@@ -321,5 +317,4 @@ public class SerialService extends Service implements SerialListener {
             }
         }
     }
-
 }

@@ -2,7 +2,6 @@ package de.kai_morich.simple_bluetooth_le_terminal;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
@@ -10,27 +9,23 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
-import android.bluetooth.le.BluetoothLeScanner;
-import android.bluetooth.le.ScanCallback;
-import android.bluetooth.le.ScanFilter;
-import android.bluetooth.le.ScanResult;
-import android.bluetooth.le.ScanSettings;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
-import android.media.MediaPlayer;
 import android.media.SoundPool;
 import android.os.Build;
 import android.util.Log;
+
+import androidx.annotation.RequiresApi;
 
 import java.io.IOException;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.Objects;
 import java.util.UUID;
 /**
  * wrap BLE communication into socket like class
@@ -92,14 +87,12 @@ class SerialSocket extends BluetoothGattCallback {
     private boolean connected;
     private int payloadSize = DEFAULT_MTU-3;
 
-    private MediaPlayer mediaPlayer; // 수정
     private int songPlayed=0;
-    private BluetoothLeScanner bluetoothLeScanner;
-    private ScanCallback scanCallback;
     private SoundPool soundPool;
     private int soundID;
 
 
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     SerialSocket(Context context, BluetoothDevice device) {
         if(context instanceof Activity)
             throw new InvalidParameterException("expected non UI context");
@@ -112,7 +105,9 @@ class SerialSocket extends BluetoothGattCallback {
         pairingBroadcastReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                onPairingBroadcastReceive(context, intent);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    onPairingBroadcastReceive(context, intent);
+                }
             }
         };
         disconnectBroadcastReceiver = new BroadcastReceiver() {
@@ -120,11 +115,8 @@ class SerialSocket extends BluetoothGattCallback {
             public void onReceive(Context context, Intent intent) {
                 if(listener != null)
                     listener.onSerialIoError(new IOException("background disconnect"));
-//                disconnect(); // disconnect now, else would be queued until UI re-attached
             }
         };
-
-
     }
 
     String getName() {
@@ -132,10 +124,7 @@ class SerialSocket extends BluetoothGattCallback {
     }
 
     void disconnect() {
-        Log.d(TAG, "disconnec1111111t");
-//        listener = null; // ignore remaining data and errors
-//        device = null;
-//        canceled = true;
+        Log.d(TAG, "disconnect");
         synchronized (writeBuffer) {
             writePending = false;
             writeBuffer.clear();
@@ -167,6 +156,7 @@ class SerialSocket extends BluetoothGattCallback {
     /**
      * connect-success and most connect-errors are returned asynchronously to listener
      */
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     void connect(SerialListener listener) throws IOException {
         if(connected || gatt != null)
             throw new IOException("already connected");
@@ -187,13 +177,14 @@ class SerialSocket extends BluetoothGattCallback {
         // continues asynchronously in onPairingBroadcastReceive() and onConnectionStateChange()
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     private void onPairingBroadcastReceive(Context context, Intent intent) {
         // for ARM Mbed, Microbit, ... use pairing from Android bluetooth settings
         // for HM10-clone, ... pairing is initiated here
         BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
         if(device==null || !device.equals(this.device))
             return;
-        switch (intent.getAction()) {
+        switch (Objects.requireNonNull(intent.getAction())) {
             case BluetoothDevice.ACTION_PAIRING_REQUEST:
                 final int pairingVariant = intent.getIntExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT, -1);
                 Log.d(TAG, "pairing request " + pairingVariant);
@@ -214,14 +205,13 @@ class SerialSocket extends BluetoothGattCallback {
     @Override
     public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
         // status directly taken from gat_api.h, e.g. 133=0x85=GATT_ERROR ~= timeout
-        Log.d(TAG,"onConnectionStateChangeonConnectionStateChangeonConnectionStateChange");
+        Log.d(TAG,"onConnectionStateChange called");
         if (newState == BluetoothProfile.STATE_CONNECTED) {
             Log.d(TAG,"connect status "+status+", discoverServices");
             if (!gatt.discoverServices())
                 onSerialConnectError(new IOException("discoverServices failed"));
         } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
             if (connected) {
-                Log.d(TAG,"ddddddddddddddddddddhow");
                 onSerialIoError(new IOException("gatt status " + status));
             }
             else
@@ -229,7 +219,6 @@ class SerialSocket extends BluetoothGattCallback {
         } else {
             Log.d(TAG, "unknown connect state "+newState+" "+status);
         }
-        // continues asynchronously in onServicesDiscovered()
     }
 
     @Override
@@ -240,11 +229,10 @@ class SerialSocket extends BluetoothGattCallback {
     }
 
     private void connectCharacteristics1(BluetoothGatt gatt) {
-        Log.d(TAG,"HORRRRRRRRAY");
+        Log.d(TAG,"connectCharacteristics1 called");
         boolean sync = true;
         writePending = false;
         delegate=null;
-        Log.d(TAG,sync+"*****************1"+delegate+readCharacteristic+writeCharacteristic);
         for (BluetoothGattService gattService : gatt.getServices()) {
             if (gattService.getUuid().equals(BLUETOOTH_LE_CC254X_SERVICE))
                 delegate = new Cc245XDelegate();
@@ -260,7 +248,6 @@ class SerialSocket extends BluetoothGattCallback {
                 break;
             }
         }
-        Log.d(TAG,sync+"*****************1"+delegate+readCharacteristic+writeCharacteristic);
         if(delegate==null || readCharacteristic==null || writeCharacteristic==null) {
             for (BluetoothGattService gattService : gatt.getServices()) {
                 Log.d(TAG, "service "+gattService.getUuid());
@@ -275,7 +262,7 @@ class SerialSocket extends BluetoothGattCallback {
     }
 
     private void connectCharacteristics2(BluetoothGatt gatt) {
-        Log.d(TAG,"HORRRRRRRRAY2222");
+        Log.d(TAG,"connectCharacteristics2 called");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             Log.d(TAG, "request max MTU");
             if (!gatt.requestMtu(MAX_MTU))
@@ -297,10 +284,10 @@ class SerialSocket extends BluetoothGattCallback {
     }
 
     private void connectCharacteristics3(BluetoothGatt gatt) {
-        Log.d(TAG,"HORRRRRRRRAY333333");
+        Log.d(TAG,"connectCharacteristics3 called");
         int writeProperties = writeCharacteristic.getProperties();
-        if((writeProperties & (BluetoothGattCharacteristic.PROPERTY_WRITE +     // Microbit,HM10-clone have WRITE
-                BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) ==0) { // HM10,TI uart,Telit have only WRITE_NO_RESPONSE
+        if((writeProperties & (BluetoothGattCharacteristic.PROPERTY_WRITE +
+                BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) ==0) {
             onSerialConnectError(new IOException("write characteristic not writable"));
             return;
         }
@@ -328,7 +315,6 @@ class SerialSocket extends BluetoothGattCallback {
         if(!gatt.writeDescriptor(readDescriptor)) {
             onSerialConnectError(new IOException("read characteristic CCCD descriptor not writable"));
         }
-        // continues asynchronously in onDescriptorWrite()
     }
 
     @Override
@@ -369,17 +355,12 @@ class SerialSocket extends BluetoothGattCallback {
      */
     @Override
     public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-        Log.d(TAG, "HORRRRRRRRAYccccccc");
-        Log.d(TAG, "ggg" + canceled + songPlayed);
+        Log.d(TAG, "Message received");
         delegate.onCharacteristicChanged(gatt, characteristic);
-        Log.d(TAG, "ggg2" + canceled + characteristic + "****" + readCharacteristic);
-
         if (characteristic == readCharacteristic) {
             byte[] data = readCharacteristic.getValue();
             onSerialRead(data);
             Log.d(TAG, "read, len=" + data.length);
-            Log.d(TAG, device.getBondState() + "dd");
-
             if (songPlayed == 0 && readCharacteristic.getStringValue(0).equals("start")) {
                 initializeSoundPool();
                 soundID = soundPool.load(context, R.raw.a, 1);
@@ -388,7 +369,6 @@ class SerialSocket extends BluetoothGattCallback {
                         AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
                         float maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
                         float volume = maxVolume / 150.0f; // Assuming maxVolume is 15
-
                         soundPool.play(soundID, volume, volume, 1, 0, 1.0f);
                         songPlayed = 1;
                     }
@@ -400,34 +380,6 @@ class SerialSocket extends BluetoothGattCallback {
 
         }
     }
-//    public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-//        Log.d(TAG,"HORRRRRRRRAYccccccc");
-//        Log.d(TAG,"ggg"+canceled+songPlayed);
-//        delegate.onCharacteristicChanged(gatt, characteristic);
-//        Log.d(TAG,"ggg2"+canceled+characteristic+"****"+readCharacteristic);
-////        if(canceled)
-////            return;
-//        if(characteristic == readCharacteristic) { // NOPMD - test object identity
-//            byte[] data = readCharacteristic.getValue();
-//            onSerialRead(data);
-//            Log.d(TAG,"read, len="+data.length);
-//            Log.d(TAG, device.getBondState()+"dd");
-//            // 수정
-//
-//            if (songPlayed==0 && readCharacteristic.getStringValue(0).equals("start")) {
-//                mediaPlayer = MediaPlayer.create(context, R.raw.a);
-//                mediaPlayer.start();
-//                songPlayed=1;
-//            }
-//            else if(songPlayed==1 && readCharacteristic.getStringValue(0).equals("stop")) {
-//                mediaPlayer.stop();
-//                mediaPlayer.release();
-//                mediaPlayer=null;
-//                songPlayed=0;
-//            }
-//
-//        }
-//    }
 
     /*
      * write

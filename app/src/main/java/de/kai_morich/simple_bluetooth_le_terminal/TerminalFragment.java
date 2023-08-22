@@ -4,13 +4,10 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.text.Editable;
@@ -27,16 +24,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-
 import java.util.ArrayDeque;
-import android.bluetooth.BluetoothAdapter;
-import android.content.IntentFilter;
+
 public class TerminalFragment extends Fragment implements ServiceConnection, SerialListener {
 
     private enum Connected { False, Pending, True }
@@ -66,7 +59,6 @@ public class TerminalFragment extends Fragment implements ServiceConnection, Ser
 
     @Override
     public void onDestroy() {
-//        Log.d("here","ondestroy");
         if (connected != Connected.False)  //수정
             disconnect();
         getActivity().stopService(new Intent(getActivity(), SerialService.class));
@@ -79,7 +71,6 @@ public class TerminalFragment extends Fragment implements ServiceConnection, Ser
         if(service != null)
             service.attach(this);
         else {
-            Log.d("woww","dddddd");
             Intent serviceIntent = new Intent(getActivity(), SerialService.class);
             serviceIntent.putExtra("deviceAddress", deviceAddress);
             ContextCompat.startForegroundService(getActivity(), serviceIntent);
@@ -198,7 +189,11 @@ public class TerminalFragment extends Fragment implements ServiceConnection, Ser
             BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddress);
             status("connecting...");
             connected = Connected.Pending;
-            SerialSocket socket = new SerialSocket(getActivity().getApplicationContext(), device);
+            SerialSocket socket = null;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+                socket = new SerialSocket(getActivity().getApplicationContext(), device);
+            }
+            assert socket != null;
             service.connect(socket);
 
         } catch (Exception e) {
