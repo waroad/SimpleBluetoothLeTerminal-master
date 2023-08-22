@@ -1,20 +1,28 @@
 package de.kai_morich.simple_bluetooth_le_terminal;
 
+import static androidx.core.content.ContentProviderCompat.requireContext;
+
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -52,6 +60,43 @@ public class SerialService extends Service implements SerialListener {
     private SerialSocket socket;
     private SerialListener listener;
     private boolean connected;
+
+    private boolean existed=false;
+    private String deviceAddress;
+
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        deviceAddress = intent.getStringExtra("deviceAddress");
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+                bluetoothStateReceiver,
+                new IntentFilter("bluetooth_state_changed")
+        );
+        Log.d("ttttttt","Some message to log"+deviceAddress);
+        return START_STICKY;
+    }
+
+    private final BroadcastReceiver bluetoothStateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            Log.d("dddddddddd","eee"+ deviceAddress);
+            if ("bluetooth_state_changed".equals(action) && !existed){
+                Log.d("d22222222","eee"+ deviceAddress);
+                BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+                BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddress);
+                SerialSocket socket = new SerialSocket(getApplicationContext(), device);
+                existed=true;
+                try {
+                    connect(socket);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            else{
+                Log.d("d3333333","eee"+ deviceAddress);
+                existed=false;
+            }
+        }
+    };
 
     /**
      * Lifecylce

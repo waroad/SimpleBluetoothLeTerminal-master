@@ -30,6 +30,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
@@ -52,19 +53,6 @@ public class TerminalFragment extends Fragment implements ServiceConnection, Ser
     private boolean hexEnabled = false;
     private boolean pendingNewline = false;
     private String newline = TextUtil.newline_crlf;
-
-
-    private BroadcastReceiver bluetoothStateReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if ("bluetooth_state_changed".equals(action)) {
-                BluetoothStateReceiver bluetoothStateReceiver = new BluetoothStateReceiver();
-                bluetoothStateReceiver.startService(context); // Pass the context to the receiver
-                connect();
-            }
-        }
-    };
     /*
      * Lifecycle
      */
@@ -88,20 +76,20 @@ public class TerminalFragment extends Fragment implements ServiceConnection, Ser
     @Override
     public void onStart() {
         super.onStart();
-        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(
-                bluetoothStateReceiver,
-                new IntentFilter("bluetooth_state_changed")
-        );
         if(service != null)
             service.attach(this);
-        else
-            getActivity().startService(new Intent(getActivity(), SerialService.class)); // prevents service destroy on unbind from recreated activity caused by orientation change
+        else {
+            Log.d("woww","dddddd");
+            Intent serviceIntent = new Intent(getActivity(), SerialService.class);
+            serviceIntent.putExtra("deviceAddress", deviceAddress);
+            ContextCompat.startForegroundService(getActivity(), serviceIntent);
+            getActivity().startService(serviceIntent); // prevents service destroy on unbind from recreated activity caused by orientation change
+
+        }
     }
 
     @Override
     public void onStop() {
-        LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(bluetoothStateReceiver);
-
         if(service != null && !getActivity().isChangingConfigurations())
             service.detach();
         super.onStop();
