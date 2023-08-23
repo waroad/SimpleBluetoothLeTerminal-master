@@ -12,10 +12,6 @@ import androidx.fragment.app.FragmentManager;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 public class BluetoothStateReceiver extends BroadcastReceiver {
-    public void startService(Context context) {
-        Intent serviceIntent = new Intent(context, SerialService.class);
-        context.startService(serviceIntent);
-    }
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();

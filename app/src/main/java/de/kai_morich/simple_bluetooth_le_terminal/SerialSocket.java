@@ -125,6 +125,9 @@ class SerialSocket extends BluetoothGattCallback {
 
     void disconnect() {
         Log.d(TAG, "disconnect");
+        listener = null; // ignore remaining data and errors
+        device = null;
+        canceled = true;
         synchronized (writeBuffer) {
             writePending = false;
             writeBuffer.clear();
@@ -229,7 +232,7 @@ class SerialSocket extends BluetoothGattCallback {
     }
 
     private void connectCharacteristics1(BluetoothGatt gatt) {
-        Log.d(TAG,"connectCharacteristics1 called");
+        Log.d(TAG,"connectCharacteristics1111111111111 called");
         boolean sync = true;
         writePending = false;
         delegate=null;
@@ -262,7 +265,7 @@ class SerialSocket extends BluetoothGattCallback {
     }
 
     private void connectCharacteristics2(BluetoothGatt gatt) {
-        Log.d(TAG,"connectCharacteristics2 called");
+        Log.d(TAG,"connectCharacteristics2222222222222 called");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             Log.d(TAG, "request max MTU");
             if (!gatt.requestMtu(MAX_MTU))
@@ -284,7 +287,7 @@ class SerialSocket extends BluetoothGattCallback {
     }
 
     private void connectCharacteristics3(BluetoothGatt gatt) {
-        Log.d(TAG,"connectCharacteristics3 called");
+        Log.d(TAG,"connectCharacteristics333333333333 called");
         int writeProperties = writeCharacteristic.getProperties();
         if((writeProperties & (BluetoothGattCharacteristic.PROPERTY_WRITE +
                 BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) ==0) {
@@ -376,6 +379,8 @@ class SerialSocket extends BluetoothGattCallback {
             } else if (songPlayed == 1 && readCharacteristic.getStringValue(0).equals("stop")) {
                 soundPool.release(); // Release the current SoundPool
                 songPlayed = 0;
+            } else{
+                disconnect();
             }
 
         }

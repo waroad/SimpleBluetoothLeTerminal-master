@@ -58,15 +58,17 @@ public class SerialService extends Service implements SerialListener {
     private SerialListener listener;
     private boolean connected;
     private boolean existed=false;
-    private String deviceAddress;
+    private String deviceAddress=null;
 
     public int onStartCommand(Intent intent, int flags, int startId) {
         deviceAddress = intent.getStringExtra("deviceAddress");
-        LocalBroadcastManager.getInstance(this).registerReceiver(
-                bluetoothStateReceiver,
-                new IntentFilter("bluetooth_state_changed")
-        );
-        Log.d("SerialService","onStartCommand called, deviceAddress: "+deviceAddress);
+        if (!connected) {
+            LocalBroadcastManager.getInstance(this).registerReceiver(
+                    bluetoothStateReceiver,
+                    new IntentFilter("bluetooth_state_changed")
+            );
+            Log.d("SerialService", "onStartCommand called, deviceAddress: " + deviceAddress);
+        }
         return START_STICKY;
     }
 
@@ -170,6 +172,22 @@ public class SerialService extends Service implements SerialListener {
         }
         queue1.clear();
         queue2.clear();
+
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddress);
+        SerialSocket socket = null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+            socket = new SerialSocket(getApplicationContext(), device);
+        }
+        Log.d("kkk","dd: "+socket);
+        existed=true;
+        try {
+            assert socket != null;
+            connect(socket);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     public void detach() {

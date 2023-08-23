@@ -2,19 +2,27 @@ package de.kai_morich.simple_bluetooth_le_terminal;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Looper;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
+import android.text.style.ForegroundColorSpan;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -27,16 +35,18 @@ import android.widget.TextView;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.ListFragment;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 
 /**
  * show list of BLE devices
  */
-public class DevicesFragment extends ListFragment {
+public class DevicesFragment extends ListFragment implements ServiceConnection, SerialListener {
 
     private enum ScanState { NONE, LE_SCAN, DISCOVERY, DISCOVERY_FINISHED }
     private ScanState scanState = ScanState.NONE;
@@ -53,6 +63,8 @@ public class DevicesFragment extends ListFragment {
     private ArrayAdapter<BluetoothUtil.Device> listAdapter;
     ActivityResultLauncher<String[]> requestBluetoothPermissionLauncherForStartScan;
     ActivityResultLauncher<String> requestLocationPermissionLauncherForStartScan;
+
+    private SerialService service;
 
     public DevicesFragment() {
         leScanCallback = (device, rssi, scanRecord) -> {
@@ -290,8 +302,45 @@ public class DevicesFragment extends ListFragment {
         BluetoothUtil.Device device = listItems.get(position-1);
         Bundle args = new Bundle();
         args.putString("device", device.getDevice().getAddress());
-        Fragment fragment = new TerminalFragment();
-        fragment.setArguments(args);
-        getFragmentManager().beginTransaction().replace(R.id.fragment, fragment, "terminal").addToBackStack(null).commit();
+        String deviceAddress = device.getDevice().getAddress();
+        Intent serviceIntent = new Intent(getActivity(), SerialService.class);
+        serviceIntent.putExtra("deviceAddress", deviceAddress);
+        ContextCompat.startForegroundService(getActivity(), serviceIntent);
+        getActivity().startService(serviceIntent); // prevents service destroy on unbind from recreated activity caused by orientation change
+        getActivity().bindService(new Intent(getActivity(), SerialService.class), this, Context.BIND_AUTO_CREATE);
+//        Fragment fragment = new TerminalFragment();
+//        fragment.setArguments(args);
+//        getFragmentManager().beginTransaction().replace(R.id.fragment, fragment, "terminal").addToBackStack(null).commit();
+    }
+    @Override
+    public void onServiceConnected(ComponentName name, IBinder binder) {
+        Log.d("ccc","ddd");
+        service = ((SerialService.SerialBinder) binder).getService();
+        boolean initialStart = true;
+        if(initialStart && isResumed())
+            service.attach(this);
+    }
+    @Override
+    public void onServiceDisconnected(ComponentName name) {
+        service = null;
+    }
+
+    @Override
+    public void onSerialConnect() {
+    }
+
+    @Override
+    public void onSerialConnectError(Exception e) {
+    }
+
+    @Override
+    public void onSerialRead(byte[] data) {
+    }
+
+    public void onSerialRead(ArrayDeque<byte[]> datas) {
+    }
+
+    @Override
+    public void onSerialIoError(Exception e) {
     }
 }
