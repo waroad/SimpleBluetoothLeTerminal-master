@@ -20,7 +20,6 @@ public class MainActivity extends AppCompatActivity implements FragmentManager.O
         IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
         registerReceiver(bluetoothStateReceiver, filter);
 
-
         getSupportFragmentManager().addOnBackStackChangedListener(this);
         if (savedInstanceState == null)
             getSupportFragmentManager().beginTransaction().add(R.id.fragment, new DevicesFragment(), "devices").commit();

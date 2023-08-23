@@ -1,5 +1,6 @@
 package de.kai_morich.simple_bluetooth_le_terminal;
 
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -23,7 +24,9 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
-
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 /**
  * create notification and queue serial data while activity is not in the foreground
  * use listener chain: SerialSocket -> SerialService -> UI fragment
@@ -60,6 +63,21 @@ public class SerialService extends Service implements SerialListener {
     private boolean existed=false;
     private String deviceAddress=null;
 
+    public void registerEventBus() {
+        EventBus.getDefault().register(this);
+    }
+
+    public void unregisterEventBus() {
+        EventBus.getDefault().unregister(this);
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onSignalEventReceived(SignalEvent event) {
+        disconnect();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(bluetoothStateReceiver);
+        stopSelf();
+    }
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     public int onStartCommand(Intent intent, int flags, int startId) {
         deviceAddress = intent.getStringExtra("deviceAddress");
         if (!connected) {
@@ -68,6 +86,10 @@ public class SerialService extends Service implements SerialListener {
                     new IntentFilter("bluetooth_state_changed")
             );
             Log.d("SerialService", "onStartCommand called, deviceAddress: " + deviceAddress);
+            if (EventBus.getDefault().isRegistered(this)) {
+                unregisterEventBus();
+            }
+            registerEventBus();
         }
         return START_STICKY;
     }
@@ -79,7 +101,6 @@ public class SerialService extends Service implements SerialListener {
             if ("bluetooth_state_changed".equals(action) && !existed){
                 BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
                 BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddress);
-                SerialSocket socket = null;
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
                     socket = new SerialSocket(getApplicationContext(), device);
                 }
@@ -111,7 +132,6 @@ public class SerialService extends Service implements SerialListener {
     @Override
     public void onDestroy() {
         cancelNotification();
-        disconnect();
         super.onDestroy();
     }
 
@@ -131,12 +151,9 @@ public class SerialService extends Service implements SerialListener {
     }
 
     public void disconnect() {
-//        connected = false; // ignore data,errors while disconnecting
-//        cancelNotification();
-//        if(socket != null) {
-//            socket.disconnect();
-//            socket = null;
-//        }
+        connected = false; // ignore data,errors while disconnecting
+        cancelNotification();
+        socket=null;
     }
 
     public void write(byte[] data) throws IOException {
@@ -263,12 +280,10 @@ public class SerialService extends Service implements SerialListener {
                             listener.onSerialConnectError(e);
                         } else {
                             queue1.add(new QueueItem(QueueType.ConnectError, e));
-                            disconnect();
                         }
                     });
                 } else {
                     queue2.add(new QueueItem(QueueType.ConnectError, e));
-                    disconnect();
                 }
             }
         }
@@ -325,12 +340,10 @@ public class SerialService extends Service implements SerialListener {
                             listener.onSerialIoError(e);
                         } else {
                             queue1.add(new QueueItem(QueueType.IoError, e));
-                            disconnect();
                         }
                     });
                 } else {
                     queue2.add(new QueueItem(QueueType.IoError, e));
-                    disconnect();
                 }
             }
         }

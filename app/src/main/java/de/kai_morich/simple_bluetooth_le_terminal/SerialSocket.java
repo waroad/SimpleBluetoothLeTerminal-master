@@ -18,9 +18,8 @@ import android.media.AudioManager;
 import android.media.SoundPool;
 import android.os.Build;
 import android.util.Log;
-
 import androidx.annotation.RequiresApi;
-
+import org.greenrobot.eventbus.EventBus;
 import java.io.IOException;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
@@ -90,7 +89,7 @@ class SerialSocket extends BluetoothGattCallback {
     private int songPlayed=0;
     private SoundPool soundPool;
     private int soundID;
-
+    private int first_send=1;
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     SerialSocket(Context context, BluetoothDevice device) {
@@ -154,6 +153,7 @@ class SerialSocket extends BluetoothGattCallback {
             context.unregisterReceiver(disconnectBroadcastReceiver);
         } catch (Exception ignored) {
         }
+        EventBus.getDefault().post(new SignalEvent());
     }
 
     /**
@@ -363,7 +363,7 @@ class SerialSocket extends BluetoothGattCallback {
         if (characteristic == readCharacteristic) {
             byte[] data = readCharacteristic.getValue();
             onSerialRead(data);
-            Log.d(TAG, "read, len=" + data.length);
+            Log.d(TAG, "read, data=" + readCharacteristic.getStringValue(0));
             if (songPlayed == 0 && readCharacteristic.getStringValue(0).equals("start")) {
                 initializeSoundPool();
                 soundID = soundPool.load(context, R.raw.a, 1);
@@ -379,8 +379,9 @@ class SerialSocket extends BluetoothGattCallback {
             } else if (songPlayed == 1 && readCharacteristic.getStringValue(0).equals("stop")) {
                 soundPool.release(); // Release the current SoundPool
                 songPlayed = 0;
-            } else{
+            } else if (readCharacteristic.getStringValue(0).equals("disconnect") && first_send==1) {
                 disconnect();
+                first_send=0;
             }
 
         }

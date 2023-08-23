@@ -61,6 +61,7 @@ public class DevicesFragment extends ListFragment implements ServiceConnection, 
     private BluetoothAdapter bluetoothAdapter;
     private final ArrayList<BluetoothUtil.Device> listItems = new ArrayList<>();
     private ArrayAdapter<BluetoothUtil.Device> listAdapter;
+    private boolean initialStart = true;
     ActivityResultLauncher<String[]> requestBluetoothPermissionLauncherForStartScan;
     ActivityResultLauncher<String> requestLocationPermissionLauncherForStartScan;
 
@@ -298,26 +299,24 @@ public class DevicesFragment extends ListFragment implements ServiceConnection, 
 
     @Override
     public void onListItemClick(@NonNull ListView l, @NonNull View v, int position, long id) {
-        stopScan();
-        BluetoothUtil.Device device = listItems.get(position-1);
-        Bundle args = new Bundle();
-        args.putString("device", device.getDevice().getAddress());
-        String deviceAddress = device.getDevice().getAddress();
-        Intent serviceIntent = new Intent(getActivity(), SerialService.class);
-        serviceIntent.putExtra("deviceAddress", deviceAddress);
-        ContextCompat.startForegroundService(getActivity(), serviceIntent);
-        getActivity().startService(serviceIntent); // prevents service destroy on unbind from recreated activity caused by orientation change
-        getActivity().bindService(new Intent(getActivity(), SerialService.class), this, Context.BIND_AUTO_CREATE);
-//        Fragment fragment = new TerminalFragment();
-//        fragment.setArguments(args);
-//        getFragmentManager().beginTransaction().replace(R.id.fragment, fragment, "terminal").addToBackStack(null).commit();
+        if(initialStart) {
+            Log.d("start","start1");
+            stopScan();
+            BluetoothUtil.Device device = listItems.get(position - 1);
+            String deviceAddress = device.getDevice().getAddress();
+            Intent serviceIntent = new Intent(getActivity(), SerialService.class);
+            serviceIntent.putExtra("deviceAddress", deviceAddress);
+            ContextCompat.startForegroundService(getActivity(), serviceIntent);
+            getActivity().startService(serviceIntent); // prevents service destroy on unbind from recreated activity caused by orientation change
+            getActivity().bindService(new Intent(getActivity(), SerialService.class), this, Context.BIND_AUTO_CREATE);
+            Log.d("start","start2");
+            initialStart=false;
+        }
     }
     @Override
     public void onServiceConnected(ComponentName name, IBinder binder) {
-        Log.d("ccc","ddd");
         service = ((SerialService.SerialBinder) binder).getService();
-        boolean initialStart = true;
-        if(initialStart && isResumed())
+        if(isResumed())
             service.attach(this);
     }
     @Override
