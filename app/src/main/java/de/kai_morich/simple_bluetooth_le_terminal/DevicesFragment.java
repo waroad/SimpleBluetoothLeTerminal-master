@@ -266,10 +266,12 @@ public class DevicesFragment extends ListFragment implements ServiceConnection, 
         if(scanState == ScanState.NONE)
             return;
         BluetoothUtil.Device device2 = new BluetoothUtil.Device(device); // slow getName() only once
-        int pos = Collections.binarySearch(listItems, device2);
-        if (pos < 0) {
-            listItems.add(-pos - 1, device2);
-            listAdapter.notifyDataSetChanged();
+        if(String.valueOf(device2.getName()).contains("HM")){
+            int pos = Collections.binarySearch(listItems, device2);
+            if (pos < 0) {
+                listItems.add(-pos - 1, device2);
+                listAdapter.notifyDataSetChanged();
+            }
         }
     }
 

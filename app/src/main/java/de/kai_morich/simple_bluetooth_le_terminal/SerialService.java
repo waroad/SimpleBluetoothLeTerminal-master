@@ -62,6 +62,7 @@ public class SerialService extends Service implements SerialListener {
     private boolean connected;
     private boolean existed=false;
     private String deviceAddress=null;
+    private BluetoothStateReceiver bluetoothStateReceiver1;
 
     public void registerEventBus() {
         EventBus.getDefault().register(this);
@@ -75,8 +76,18 @@ public class SerialService extends Service implements SerialListener {
     public void onSignalEventReceived(SignalEvent event) {
         disconnect();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(bluetoothStateReceiver);
+        unregisterReceiver(bluetoothStateReceiver1);
         stopSelf();
     }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        bluetoothStateReceiver1 = new BluetoothStateReceiver();
+        IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+        registerReceiver(bluetoothStateReceiver1, filter);
+    }
+
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     public int onStartCommand(Intent intent, int flags, int startId) {
         deviceAddress = intent.getStringExtra("deviceAddress");
