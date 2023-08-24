@@ -366,13 +366,13 @@ class SerialSocket extends BluetoothGattCallback {
             Log.d(TAG, "read, data=" + readCharacteristic.getStringValue(0));
             if (songPlayed == 0 && readCharacteristic.getStringValue(0).equals("start")) {
                 initializeSoundPool();
-                soundID = soundPool.load(context, R.raw.a, 1);
+                soundID = soundPool.load(context, R.raw.b, 1);
                 soundPool.setOnLoadCompleteListener((soundPool, sampleId, status) -> {
                     if (status == 0) { // Success
                         AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
                         float maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
-                        float volume = maxVolume / 150.0f; // Assuming maxVolume is 15
-                        soundPool.play(soundID, volume, volume, 1, 0, 1.0f);
+                        float volume = maxVolume / 15000.0f; // Assuming maxVolume is 15
+                        soundPool.play(soundID, volume, volume, 1, -1, 1.0f);
                         songPlayed = 1;
                     }
                 });
