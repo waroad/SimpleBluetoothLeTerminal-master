@@ -374,7 +374,7 @@ class SerialSocket extends BluetoothGattCallback {
                     if (status == 0) { // Success
                         AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
                         float maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
-                        float volume = maxVolume / 5000.0f; // Assuming maxVolume is 15
+                        float volume = maxVolume / 5000.0f; // 15로 나누면 최대 음량이다. 현재는 /5000으로 해서 조금 작다.
                         soundPool.play(soundID, volume, volume, 1, -1, 1.0f);
                     }
                 });
