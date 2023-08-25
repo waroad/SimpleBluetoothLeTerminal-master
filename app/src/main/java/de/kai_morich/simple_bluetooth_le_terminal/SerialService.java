@@ -219,7 +219,6 @@ public class SerialService extends Service implements SerialListener {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
     }
 
     public void detach() {
@@ -232,8 +231,15 @@ public class SerialService extends Service implements SerialListener {
     }
 
     private void createNotification() {
+        Log.d("noti","noono");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel nc = new NotificationChannel(Constants.NOTIFICATION_CHANNEL, "Background service", NotificationManager.IMPORTANCE_LOW);
+            startForegroundService(new Intent(this, SerialService.class)); // prevents service destroy on unbind from recreated activity caused by orientation change
+        }
+        else
+            startService(new Intent(this, SerialService.class)); // prevents service destroy on unbind from recreated activity caused by orientation change
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel nc = new NotificationChannel(Constants.NOTIFICATION_CHANNEL, "Background service", NotificationManager.IMPORTANCE_HIGH);
             nc.setShowBadge(false);
             NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
             nm.createNotificationChannel(nc);

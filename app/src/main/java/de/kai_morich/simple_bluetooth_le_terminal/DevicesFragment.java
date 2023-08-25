@@ -305,11 +305,17 @@ public class DevicesFragment extends ListFragment implements ServiceConnection, 
             String deviceAddress = device.getDevice().getAddress();
             Intent serviceIntent = new Intent(getActivity(), SerialService.class);
             serviceIntent.putExtra("deviceAddress", deviceAddress);
-            ContextCompat.startForegroundService(getActivity(), serviceIntent);
+//            ContextCompat.startForegroundService(getActivity(), serviceIntent);
             getActivity().startService(serviceIntent); // prevents service destroy on unbind from recreated activity caused by orientation change
             getActivity().bindService(new Intent(getActivity(), SerialService.class), this, Context.BIND_AUTO_CREATE);
             initialStart=false;
         }
+    }
+    @Override
+    public void onStop() {
+        if(service != null && !getActivity().isChangingConfigurations())
+            service.detach();
+        super.onStop();
     }
     @Override
     public void onServiceConnected(ComponentName name, IBinder binder) {
