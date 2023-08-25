@@ -7,9 +7,9 @@
 #define PUSHBUTTON_reset	4
 SoftwareSerial BTSerial(BLEHM10_PIN_TXD, BLEHM10_PIN_RXD);  // 소프트웨어 시리얼 (TX,RX)
 
-int tt=0;   
-int dis_send_once=1;
-unsigned long previousMillis = 0;  // Holds the last time the value was increased
+unsigned long dis_send_once=0;
+unsigned long start_send_once=0;
+unsigned long stop_send_once=0;
 const unsigned long interval = 1000;
 void setup() {
   Serial.begin(9600);        // 통신속도 9600으로 설정
@@ -18,7 +18,9 @@ void setup() {
   pinMode(PUSHBUTTON_start, INPUT);  
   pinMode(PUSHBUTTON_stop, INPUT);  
   pinMode(PUSHBUTTON_reset, INPUT);  
-  previousMillis = millis();
+  dis_send_once = millis();  
+  start_send_once = millis();  
+  stop_send_once = millis();
 }
 
 void loop() {
@@ -26,25 +28,21 @@ void loop() {
   bool stop1 = digitalRead(PUSHBUTTON_stop);
   bool disconnect1 = digitalRead(PUSHBUTTON_reset);
   unsigned long currentMillis = millis(); 
-  if (currentMillis - previousMillis >= interval) {
-    dis_send_once=1;
-    previousMillis = currentMillis;
-  }
-  // dis_send_once를 이용해 disconnect가 최대 1초에 1번만 전송되도록
-  if (disconnect1 == HIGH && dis_send_once==1){ 
+
+  // 어떤 메시지가 전송되면 다음 1초간은 해당 메시지를 보내지 못한다.
+  if (disconnect1 == HIGH && currentMillis-dis_send_once>=interval){ 
     BTSerial.write("disconnect");
-    dis_send_once=0;
+    dis_send_once=millis();
   }
-  // 똑같이 tt value를 이용해, start가 1번만 전송되고, stop이 눌려야 다시 전송 가능
-  if (start1 == HIGH && tt==0) {
+  if (start1 == HIGH && currentMillis-start_send_once>=interval) {
     Serial.print("hey\n");
     BTSerial.write("start");
-    tt=1;
+    start_send_once = millis();
   }
-  if (stop1 == HIGH && tt==1) {
+  if (stop1 == HIGH && currentMillis-stop_send_once>=interval) {
     Serial.print("stop\n");
     BTSerial.write("stop");
-    tt=0;
+    stop_send_once = millis();
   }
   while (BTSerial.available()) {
     byte data = BTSerial.read();
