@@ -13,13 +13,19 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.res.TypedArray;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.media.SoundPool;
+import android.net.Uri;
 import android.os.Build;
 import android.util.Log;
 import androidx.annotation.RequiresApi;
 import org.greenrobot.eventbus.EventBus;
+
+import java.io.File;
 import java.io.IOException;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
@@ -86,9 +92,16 @@ class SerialSocket extends BluetoothGattCallback {
     private boolean connected;
     private int payloadSize = DEFAULT_MTU-3;
 
+    private int songPlayed=0;
     private SoundPool soundPool;
     private int soundID;
     private int first_send=1;
+
+    //추가한 부분
+    private int pos;
+    private TypedArray songIds;
+    private boolean isway = false;
+    ArrayList<String> songNames = new ArrayList<>();
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     SerialSocket(Context context, BluetoothDevice device) {
@@ -363,30 +376,103 @@ class SerialSocket extends BluetoothGattCallback {
             byte[] data = readCharacteristic.getValue();
             onSerialRead(data);
             Log.d(TAG, "read, data=" + readCharacteristic.getStringValue(0));
-            if (soundID == 0 && readCharacteristic.getStringValue(0).equals("start")) {
+            isway = getBooleanValue();
+            initializeSoundPool();
+            if (isway == false) {
+                String[] rawSongNames = context.getResources().getStringArray(R.array.song_names);
+                for (String name : rawSongNames) {
+                    songNames.add(name);
+                }
+                songIds = context.getResources().obtainTypedArray(R.array.song_ids);
+                pos = getIntValue();
+                int resourceId = songIds.getResourceId(pos, 0);
+                if (songPlayed == 0) {
+                    int soundId = soundPool.load(context, resourceId, 1);
+                    soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener() {
+                        @Override
+                        public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
+                            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+                            float maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
+                            float volume = maxVolume / 15.0f; // Assuming maxVolume is 15
+                            soundPool.play(soundId, volume, volume, 1, 0, 1.0f);
+                            songPlayed = 1;
+                        }
+                    });
+                } else {
+                    soundPool.release();
+                    songPlayed = 0;
+                }
+            } else {
+                loadRecordings();
+                pos = getIntValue();
+                File path = context.getFilesDir();
+                File file = new File(path, songNames.get(pos));
+                if (file.exists()) {
+                    int soundId = soundPool.load(file.getAbsolutePath(), 1);
+                    soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener() {
+                        @Override
+                        public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
+                            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+                            float maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
+                            float volume = maxVolume / 15.0f; // Assuming maxVolume is 15
+                            soundPool.play(soundId, volume, volume, 1, 0, 1.0f);
+                        }
+                    });
+                }
+                if (songPlayed == 0) {
+                    songPlayed = 1;
+                } else {
+                    soundPool.release();
+                    songPlayed = 0;
+                }
+            }
+
+            /*
+            if (songPlayed == 0 && readCharacteristic.getStringValue(0).equals("start")) {
                 initializeSoundPool();
-                soundID = soundPool.load(context, R.raw.b, 1);
+                soundID = soundPoo
+                soundID = soundPool.load(context, R.raw.a, 1);
                 soundPool.setOnLoadCompleteListener((soundPool, sampleId, status) -> {
                     if (status == 0) { // Success
                         AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
                         float maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
-                        float volume = maxVolume / 15000.0f; // Assuming maxVolume is 15
-                        soundPool.play(soundID, volume, volume, 1, -1, 1.0f);
+                        float volume = maxVolume / 150.0f; // Assuming maxVolume is 15
+                        soundPool.play(soundID, volume, volume, 1, 0, 1.0f);
+                        songPlayed = 1;
                     }
                 });
-            } else if (soundID != 0 && readCharacteristic.getStringValue(0).equals("stop")) {
+            } else if (songPlayed == 1 && readCharacteristic.getStringValue(0).equals("stop")) {
                 soundPool.release(); // Release the current SoundPool
-                soundID = 0;
+                songPlayed = 0;
             } else if (readCharacteristic.getStringValue(0).equals("disconnect") && first_send==1) {
-                soundPool.release(); // Release the current SoundPool
-                soundID = 0;
+                disconnect();
+                first_send=0;
+            }*/
+            if (readCharacteristic.getStringValue(0).equals("disconnect") && first_send==1) {
                 disconnect();
                 first_send=0;
             }
-
         }
     }
-
+    private void loadRecordings() {
+        File path = context.getFilesDir();
+        File[] files = path.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.getName().endsWith(".3gp")) {
+                    songNames.add(file.getName());
+                }
+            }
+        }
+    }
+    public int getIntValue() {
+        SharedPreferences sharedPreferences = context.getSharedPreferences("test", Context.MODE_PRIVATE);
+        return sharedPreferences.getInt("inputText", 0);
+    }
+    public Boolean getBooleanValue() {
+        SharedPreferences sharedPreferences = context.getSharedPreferences("test", Context.MODE_PRIVATE);
+        return sharedPreferences.getBoolean("input",false);
+    }
     /*
      * write
      */

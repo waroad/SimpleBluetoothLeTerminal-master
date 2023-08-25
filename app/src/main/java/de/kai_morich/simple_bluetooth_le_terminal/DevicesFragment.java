@@ -313,6 +313,11 @@ public class DevicesFragment extends ListFragment implements ServiceConnection, 
             getActivity().bindService(new Intent(getActivity(), SerialService.class), this, Context.BIND_AUTO_CREATE);
             Log.d("start","start2");
             initialStart=false;
+            /*Bundle args = new Bundle();
+            args.putString("device", device.getDevice().getAddress());
+            Fragment fragment = new InitialFragment();
+            fragment.setArguments(args);
+            getFragmentManager().beginTransaction().replace(R.id.fragment, fragment, "initial").addToBackStack(null).commit();*/
         }
     }
     @Override

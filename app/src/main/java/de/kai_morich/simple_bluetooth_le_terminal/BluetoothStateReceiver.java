@@ -17,8 +17,6 @@ public class BluetoothStateReceiver extends BroadcastReceiver {
                 Log.d("BluetoothStateReceiver","bluetooth state change detected");
                 Intent broadcastIntent = new Intent("bluetooth_state_changed");
                 LocalBroadcastManager.getInstance(context).sendBroadcast(broadcastIntent);
-
-
             }
         }
     }

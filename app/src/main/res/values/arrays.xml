@@ -10,4 +10,16 @@
         <item>\u000a</item>
         <item></item>
     </string-array>
+    <string-array name="song_names">
+        <item>Song 1</item>
+        <item>Song 2</item>
+        <item>Song 3</item>
+        <item>Song 4</item>
+    </string-array>
+    <array name="song_ids">
+        <item>@raw/song1</item>
+        <item>@raw/song2</item>
+        <item>@raw/song3</item>
+        <item>@raw/song4</item>
+    </array>
 </resources>
