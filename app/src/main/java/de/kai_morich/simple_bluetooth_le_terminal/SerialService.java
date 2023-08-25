@@ -31,6 +31,10 @@ import org.greenrobot.eventbus.ThreadMode;
  * create notification and queue serial data while activity is not in the foreground
  * use listener chain: SerialSocket -> SerialService -> UI fragment
  */
+// 여기서 SerialSocket을 생성해주고, BluetoothStateReceiver를 생성하여 Bluetooth 상태를 수신한다.
+// 백그라운드에서 블루투스 기능 껐다 킬시 BLE 디바이스와 연결하기 위한 SerialSocket 재생성을 담당한다.
+// 중간 중간 Notification과 Foreground 서비스를 위한 코드도 있는데, APi 레벨 30부터 해당 기능 조건이
+// 좀 더 까다로워 지면서 제대로 구현이 안된다. 그래서 그냥 background에서 모두 처리하는데, 일단은 남겨 놓았다.
 public class SerialService extends Service implements SerialListener {
 
     class SerialBinder extends Binder {
@@ -71,7 +75,7 @@ public class SerialService extends Service implements SerialListener {
     public void unregisterEventBus() {
         EventBus.getDefault().unregister(this);
     }
-
+// 버스로 연결 해제 시그널이 날라오면, bluetoothStateReceiver를 자원 해제하고 이 service를 종료한다.
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onSignalEventReceived(SignalEvent event) {
         disconnect();
@@ -79,7 +83,7 @@ public class SerialService extends Service implements SerialListener {
         unregisterReceiver(bluetoothStateReceiver1);
         stopSelf();
     }
-
+// 여기서 bluetoothStateReceiver를 생성한다.
     @Override
     public void onCreate() {
         super.onCreate();
@@ -87,7 +91,7 @@ public class SerialService extends Service implements SerialListener {
         IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
         registerReceiver(bluetoothStateReceiver1, filter);
     }
-
+// 여기서 Socket으로부터 정보를 받을 EventBus를 생성해준다.
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     public int onStartCommand(Intent intent, int flags, int startId) {
         deviceAddress = intent.getStringExtra("deviceAddress");
@@ -172,7 +176,7 @@ public class SerialService extends Service implements SerialListener {
             throw new IOException("not connected");
         socket.write(data);
     }
-
+// 여기서 최초 1회, socket을 생성하여 연결을 시작한다.
     public void attach(SerialListener listener) {
         if(Looper.getMainLooper().getThread() != Thread.currentThread())
             throw new IllegalArgumentException("not in main thread");
