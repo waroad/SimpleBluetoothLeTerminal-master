@@ -378,6 +378,8 @@ class SerialSocket extends BluetoothGattCallback {
                 soundPool.release(); // Release the current SoundPool
                 soundID = 0;
             } else if (readCharacteristic.getStringValue(0).equals("disconnect") && first_send==1) {
+                soundPool.release(); // Release the current SoundPool
+                soundID = 0;
                 disconnect();
                 first_send=0;
             }
