@@ -22,7 +22,6 @@ import android.os.Build;
 import android.util.Log;
 import androidx.annotation.RequiresApi;
 import org.greenrobot.eventbus.EventBus;
-
 import java.io.File;
 import java.io.IOException;
 import java.security.InvalidParameterException;
