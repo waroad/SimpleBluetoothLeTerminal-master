@@ -45,6 +45,7 @@ public class RecordFragment extends Fragment {
     private int selectedPosition = -1;
     private static final String PREFS_NAME = "Recordings";
     private static final String KEY_RECORDINGS = "recordings";
+    private View previousView = null;
         @SuppressLint("MissingInflatedId")
         public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
              View view = inflater.inflate(R.layout.fragment_record,container,false);
@@ -56,7 +57,7 @@ public class RecordFragment extends Fragment {
         listView.setAdapter(adapter);
         recordenter = view.findViewById(R.id.record_button);
         loadRecordings();
-        //initial(listView);
+        initial(listView);
             recordenter.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -113,26 +114,7 @@ public class RecordFragment extends Fragment {
         return view;
     }
 
-    @Override
-    public void onStart() {
-        super.onStart();
-        Log.d("tag", "onstart");
-        int firstVisiblePosition = listView.getFirstVisiblePosition();
-        int lastVisiblePosition = listView.getLastVisiblePosition();
-        Log.d("tag", String.valueOf(firstVisiblePosition));
-        Log.d("tag", String.valueOf(lastVisiblePosition));
-    }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        Log.d("tag", "onresume");
-        int firstVisiblePosition = listView.getFirstVisiblePosition();
-        int lastVisiblePosition = listView.getLastVisiblePosition();
-        Log.d("tag", String.valueOf(firstVisiblePosition));
-        Log.d("tag", String.valueOf(lastVisiblePosition));
-        //initial(listView);
-    }
 
     private void initial(ListView listview){
         boolean ismode;
@@ -140,25 +122,19 @@ public class RecordFragment extends Fragment {
         selectedPosition = sharedPreferences.getInt("inputText", -1);
         ismode = sharedPreferences.getBoolean("input", false);
         if(ismode==true&&selectedPosition!=-1){
-            int firstVisiblePosition = listview.getFirstVisiblePosition();
-            int lastVisiblePosition = listview.getLastVisiblePosition();
-            Log.d("tag", String.valueOf(firstVisiblePosition));
-            Log.d("tag", String.valueOf(lastVisiblePosition));
-            Log.d("tag", "wipi");
-            if (selectedPosition >= firstVisiblePosition && selectedPosition <= lastVisiblePosition) {
-                View colored = listview.getChildAt(selectedPosition - firstVisiblePosition);
-                if(colored==null){
-                    Log.d("tag", "NULL");
+            listView.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (selectedPosition != -1) {
+                        listView.setItemChecked(selectedPosition, true);
+                        listView.setSelection(selectedPosition);
+                        previousView = listView.getChildAt(selectedPosition - listView.getFirstVisiblePosition());
+                        if (previousView != null) {
+                            previousView.setBackgroundColor(Color.YELLOW);
+                        }
+                    }
                 }
-                else{
-                    Log.d("tag", String.valueOf(selectedPosition));
-                    colored.setBackgroundColor(Color.YELLOW);
-                    adapter.notifyDataSetChanged();
-                }
-            }
-            else{
-                Log.d("tag", "Silla");
-            }
+            });
         }
     }
     private void showRecordDialog(ListView listview) {
