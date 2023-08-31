@@ -6,15 +6,19 @@
 
     <Button
         android:id="@+id/recordbtn"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textSize="30sp"
         android:text="녹음 시작" />
 
     <Button
         android:id="@+id/recordcomplete"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="20sp"
+        android:layout_weight="1"
+        android:layout_marginLeft="30sp"
+        android:textSize="30sp"
         android:text="녹음 완료" />
 
 

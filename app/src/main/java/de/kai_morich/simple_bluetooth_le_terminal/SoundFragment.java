@@ -39,7 +39,7 @@ public class SoundFragment extends Fragment {
 
         // Set up the list view
         ListView listView = view.findViewById(R.id.list_view);
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_list_item_1, songNames);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(getActivity(), R.layout.my_simple_list_item, songNames);
         listView.setAdapter(adapter);
         initial(listView);
         // Set the click listener for the list view
@@ -66,6 +66,7 @@ public class SoundFragment extends Fragment {
         });
         return view;
     }
+    //이 부분은 사용자가 선택할 칸을 표시해주기 위해 존재하는 부분입니다.
     private void initial(ListView listview){
         boolean ismode;
         SharedPreferences sharedPreferences = getActivity().getSharedPreferences("test", getActivity().MODE_PRIVATE);
@@ -87,6 +88,7 @@ public class SoundFragment extends Fragment {
             });
         }
     }
+    //이 부분은 리스트뷰에서 사용자가 클릭하면 기본음을 들려줍니다.
     private void playSong(int position) {
         // Stop any currently playing song
         if (mediaPlayer != null) {

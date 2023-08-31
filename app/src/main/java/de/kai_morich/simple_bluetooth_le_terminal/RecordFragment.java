@@ -53,7 +53,7 @@ public class RecordFragment extends Fragment {
         // Set up the list view
         songNames = new ArrayList<>();
         listView = view.findViewById(R.id.list_view);
-        adapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_list_item_1, songNames);
+        adapter = new ArrayAdapter<>(getActivity(), R.layout.my_simple_list_item, songNames);
         listView.setAdapter(adapter);
         recordenter = view.findViewById(R.id.record_button);
         loadRecordings();
@@ -194,6 +194,7 @@ public class RecordFragment extends Fragment {
         //builder.show();
     }
 
+    //이 부분은 사용자가 사용할 녹음 파일의 이름을 지정하는 부분입니다.
     private void showTitleInputDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setTitle("제목 입력");
@@ -240,6 +241,8 @@ public class RecordFragment extends Fragment {
         adapter.notifyDataSetChanged();
     }
 
+    //이 코드는 녹음하는 코드입니다. mediaRecorder를 생성하여 녹음할 준비를 하고 파일위치도 지정해줍니다.
+    //try하면서 songNames에 추가해주고 녹음할 준비를 합니다.
     private void startRecording() {
         mediaRecorder = new MediaRecorder();
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
@@ -258,6 +261,7 @@ public class RecordFragment extends Fragment {
             e.printStackTrace();
         }
     }
+    //이 부분은 녹음을 중단하는 부분입니다.
     private void stopRecording() {
         mediaRecorder.stop();
         mediaRecorder.release();
@@ -265,6 +269,7 @@ public class RecordFragment extends Fragment {
         adapter.notifyDataSetChanged();
     }
 
+    //이 부분은 listview에서 녹음 파일을 클릭하면 본인이 원하는 녹음 파일을 들을 수 있습니다.
     private void playSong(int position) {
         if (mediaPlayer != null) {
             mediaPlayer.stop();
@@ -280,6 +285,7 @@ public class RecordFragment extends Fragment {
         }
     }
 
+    //이 부분은 녹음 파일 중 마음에 들지 않는 파일을 삭제하는 부분입니다.
     private void deleteSong(int position) {
         // Stop any currently playing song
         if (mediaRecorder != null) {
@@ -296,12 +302,14 @@ public class RecordFragment extends Fragment {
         // Delete the selected song
         File path = getActivity().getFilesDir();
         File file = new File(path, songNames.get(position));
+        //songNames에서 제거해주고 adapter에 알려줍니다.
         if (file.exists()) {
             file.delete();
             songNames.remove(position);
             adapter.notifyDataSetChanged();
         }
     }
+    //이 부분은 삭제할 때 다이어로그를 띄워 삭제할 지 취소할지 정하는 부분입니다.
     private void showDeleteDialog(int position,ListView listView) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         LayoutInflater inflater = getLayoutInflater();
@@ -329,10 +337,6 @@ public class RecordFragment extends Fragment {
                     Log.d("tag","long");
                     colored.setBackgroundColor(Color.YELLOW);
                 }
-                /*SharedPreferences sharedPreferences= getActivity().getSharedPreferences("test",getActivity().MODE_PRIVATE);    // test 이름의 기본모드 설정
-                SharedPreferences.Editor editor= sharedPreferences.edit(); //sharedPreferences를 제어할 editor를 선언
-                editor.putInt("inputText",selectedPosition); // key,value 형식으로 저장
-                editor.commit();*/
             }
         });
         cancelbtn.setOnClickListener(new View.OnClickListener() {
@@ -344,6 +348,7 @@ public class RecordFragment extends Fragment {
         dialog.setCanceledOnTouchOutside(false);
         dialog.show();
     }
+    // 이 부분은 onDestroy할 때 songNames를 sharedpreferences에 저장하는 부분입니다.
     @Override
     public void onDestroy() {
         super.onDestroy();

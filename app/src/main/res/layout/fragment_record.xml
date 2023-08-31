@@ -6,8 +6,9 @@
 
     <Button
         android:id="@+id/record_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="156dp"
+        android:layout_height="80dp"
+        android:textSize="30sp"
         android:text="녹음시작" />
 
     <ListView

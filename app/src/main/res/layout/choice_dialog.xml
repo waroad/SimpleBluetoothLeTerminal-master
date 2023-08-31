@@ -5,20 +5,20 @@
     android:orientation="horizontal">
 
     <Button
-        android:id="@+id/deletebtn"
+        android:id="@+id/record_choice_btn"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="50dp"
         android:layout_weight="1"
-        android:textSize="30sp"
-        android:text="삭제" />
+        android:textSize="20sp"
+        android:text="녹음 파일 선택" />
 
     <Button
-        android:id="@+id/cancelbtn"
+        android:id="@+id/notification_choice_btn"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="50dp"
         android:layout_weight="1"
-        android:textSize="30sp"
-        android:text="취소" />
+        android:textSize="20sp"
+        android:text="기본음 선택" />
 
 
 </LinearLayout>

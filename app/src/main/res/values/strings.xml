@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Simple BLE Terminal</string>
+    <string name="app_name">블루 알리미</string>
     <string name="devices">Bluetooth LE Devices</string>
 
     <string name="bluetooth_permission_title">Bluetooth permission</string>
