@@ -2,7 +2,6 @@ package de.kai_morich.simple_bluetooth_le_terminal;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -19,9 +18,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
-import android.text.Spannable;
-import android.text.SpannableStringBuilder;
-import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -31,12 +27,10 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
-
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
-import androidx.fragment.app.Fragment;
 import androidx.fragment.app.ListFragment;
 
 import java.util.ArrayDeque;
@@ -46,6 +40,8 @@ import java.util.Collections;
 /**
  * show list of BLE devices
  */
+// 블루투스 연결 메뉴에 들어가면, 연결 가능한 블루투스가 떠는 fragment다. 클릭시 해당 SerialService를 생성하여
+// 연결을 시작한다.
 public class DevicesFragment extends ListFragment implements ServiceConnection, SerialListener {
 
     private enum ScanState { NONE, LE_SCAN, DISCOVERY, DISCOVERY_FINISHED }
@@ -260,7 +256,8 @@ public class DevicesFragment extends ListFragment implements ServiceConnection, 
             bluetoothAdapter.startDiscovery();
         }
     }
-
+    // HM으로 시작하는 것만 띄어준다. AT 코맨드를 이용하여 BLE의 이름을 바꿔줄 수 있기에, 이름 바꾸고 해당 이름을
+// 여기 넣어서 지금 필요한 BLE만 뜨게 수정해주면 된다.
     @SuppressLint("MissingPermission")
     private void updateScan(BluetoothDevice device) {
         if(scanState == ScanState.NONE)
@@ -298,11 +295,11 @@ public class DevicesFragment extends ListFragment implements ServiceConnection, 
         scanState = ScanState.NONE;
 
     }
-
+    // 항목이 눌러졌을 해당 주소를 가지고 SerialService를 만들어 deviceAddress와 함꼐 넘겨준다.
+// initialStart로, 해당 BLE 이름을 광클 해도 최초 한번만 생성하도록 했다.
     @Override
     public void onListItemClick(@NonNull ListView l, @NonNull View v, int position, long id) {
         if(initialStart) {
-            Log.d("start","start1");
             stopScan();
             BluetoothUtil.Device device = listItems.get(position - 1);
             String deviceAddress = device.getDevice().getAddress();
@@ -311,15 +308,15 @@ public class DevicesFragment extends ListFragment implements ServiceConnection, 
             ContextCompat.startForegroundService(getActivity(), serviceIntent);
             getActivity().startService(serviceIntent); // prevents service destroy on unbind from recreated activity caused by orientation change
             getActivity().bindService(new Intent(getActivity(), SerialService.class), this, Context.BIND_AUTO_CREATE);
-            Log.d("start","start2");
             initialStart=false;
-            /*Bundle args = new Bundle();
-            args.putString("device", device.getDevice().getAddress());
-            Fragment fragment = new InitialFragment();
-            fragment.setArguments(args);
-            getFragmentManager().beginTransaction().replace(R.id.fragment, fragment, "initial").addToBackStack(null).commit();*/
         }
     }
+    //    @Override
+//    public void onStop() {
+//        if(service != null && !getActivity().isChangingConfigurations())
+//            service.detach();
+//        super.onStop();
+//    }
     @Override
     public void onServiceConnected(ComponentName name, IBinder binder) {
         service = ((SerialService.SerialBinder) binder).getService();

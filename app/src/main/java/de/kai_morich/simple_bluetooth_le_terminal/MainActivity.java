@@ -2,8 +2,10 @@ package de.kai_morich.simple_bluetooth_le_terminal;
 
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
+import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.core.app.ActivityCompat;
@@ -31,6 +33,10 @@ public class MainActivity extends AppCompatActivity implements FragmentManager.O
             getSupportFragmentManager().beginTransaction().add(R.id.fragment, new InitialFragment(), "devices").commit();
         else
             onBackStackChanged();
+        Intent intent1 = new Intent();
+        intent1.setAction("android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS");
+        intent1.setData(Uri.parse("package:" + getPackageName()));
+        startActivity(intent1);
     }
 
     @Override

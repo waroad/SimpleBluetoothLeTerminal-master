@@ -17,9 +17,7 @@ import android.content.SharedPreferences;
 import android.content.res.TypedArray;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
-import android.media.MediaPlayer;
 import android.media.SoundPool;
-import android.net.Uri;
 import android.os.Build;
 import android.util.Log;
 import androidx.annotation.RequiresApi;
@@ -37,6 +35,7 @@ import java.util.UUID;
  *   - connect, disconnect and write as methods,
  *   - read + status is returned by SerialListener
  */
+// BLE 디바이스와의 모든 연결을 담당한다.
 @SuppressLint("MissingPermission") // various BluetoothGatt, BluetoothDevice methods
 class SerialSocket extends BluetoothGattCallback {
 
@@ -96,8 +95,6 @@ class SerialSocket extends BluetoothGattCallback {
     private SoundPool soundPool;
     private int soundID;
     private int first_send=1;
-
-    //추가한 부분
     private int pos;
     private TypedArray songIds;
     private boolean isway = false;
@@ -129,11 +126,11 @@ class SerialSocket extends BluetoothGattCallback {
             }
         };
     }
-
     String getName() {
         return device.getName() != null ? device.getName() : device.getAddress();
     }
-
+    // 연결 해제 메시지 수신시,
+// 모든 리소스를 해제하고 EventBus를 이용해 SerialService로 연결이 해제됐다는 사실을 보내준다.
     void disconnect() {
         Log.d(TAG, "disconnect");
         listener = null; // ignore remaining data and errors
@@ -216,7 +213,7 @@ class SerialSocket extends BluetoothGattCallback {
                 break;
         }
     }
-
+    // 거리가 멀어지는 등의 연결 상태에 변화가 있을시 여기서 연결을 시도한다.
     @Override
     public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
         // status directly taken from gat_api.h, e.g. 133=0x85=GATT_ERROR ~= timeout
@@ -242,7 +239,7 @@ class SerialSocket extends BluetoothGattCallback {
         canceled=false;
         connectCharacteristics1(gatt);
     }
-
+    // 1,2,3 순서로 하나씩 자원할당을 하고 테스팅하면서 연결을 한다.
     private void connectCharacteristics1(BluetoothGatt gatt) {
         Log.d(TAG,"connectCharacteristics1111111111111 called");
         boolean sync = true;
@@ -350,6 +347,7 @@ class SerialSocket extends BluetoothGattCallback {
             }
         }
     }
+    // 핸드폰에서 알람이 울리게 하기 위해 SoundPool을 사용했는데, initializing을 해준다.
     private void initializeSoundPool() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             AudioAttributes audioAttributes = new AudioAttributes.Builder()
@@ -368,6 +366,8 @@ class SerialSocket extends BluetoothGattCallback {
     /*
      * read
      */
+// 문자 수신시 처리해준다. soundPool을 만들어 알람을 키기도, soundPool을 해제해 알람을 끄기도,
+// disconnect()를 호출해 자원 해제를 하기도 한다.
     @Override
     public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
         Log.d(TAG, "Message received");
@@ -455,6 +455,7 @@ class SerialSocket extends BluetoothGattCallback {
     /*
      * write
      */
+// 스마트폰에서 BLE 디바이스에 메시지를 보낼 때 필요한데, 현재 엡에서는 딱히 사용하지는 않는다.
     void write(byte[] data) throws IOException {
         if(canceled || !connected || writeCharacteristic == null)
             throw new IOException("not connected");
