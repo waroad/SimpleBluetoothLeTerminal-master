@@ -386,7 +386,7 @@ class SerialSocket extends BluetoothGattCallback {
                 songIds = context.getResources().obtainTypedArray(R.array.song_ids);
                 pos = getIntValue();
                 int resourceId = songIds.getResourceId(pos, 0);
-                if (songPlayed == 0) {
+                if (soundID== 0 && readCharacteristic.getStringValue(0).equals("start")) {
                     int soundId = soundPool.load(context, resourceId, 1);
                     soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener() {
                         @Override
@@ -395,12 +395,18 @@ class SerialSocket extends BluetoothGattCallback {
                             float maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
                             float volume = maxVolume / 15.0f; // Assuming maxVolume is 15
                             soundPool.play(soundId, volume, volume, 1, 0, 1.0f);
-                            songPlayed = 1;
+                            soundID = 1;
                         }
                     });
-                } else {
-                    soundPool.release();
-                    songPlayed = 0;
+                } else if (soundID != 0&& readCharacteristic.getStringValue(0).equals("stop")) {
+                    soundPool.release(); // Release the current SoundPool
+                    Log.d("tag","stop");
+                    soundID = 0;
+                } else if (readCharacteristic.getStringValue(0).equals("disconnect") && first_send==1) {
+                    soundPool.release(); // Release the current SoundPool
+                    soundID = 0;
+                    disconnect();
+                    first_send=0;
                 }
             } else {
                 loadRecordings();
@@ -419,14 +425,18 @@ class SerialSocket extends BluetoothGattCallback {
                         }
                     });
                 }
-                if (songPlayed == 0) {
+                if (songPlayed == 0 && readCharacteristic.getStringValue(0).equals("start")) {
                     songPlayed = 1;
-                } else {
-                    soundPool.release();
+                } else if (songPlayed != 0 && readCharacteristic.getStringValue(0).equals("stop")) {
+                    soundPool.release(); // Release the current SoundPool
                     songPlayed = 0;
+                } else if (readCharacteristic.getStringValue(0).equals("disconnect") && first_send==1) {
+                    soundPool.release(); // Release the current SoundPool
+                    songPlayed = 0;
+                    disconnect();
+                    first_send=0;
                 }
             }
-
             if (readCharacteristic.getStringValue(0).equals("disconnect") && first_send==1) {
                 disconnect();
                 first_send=0;
