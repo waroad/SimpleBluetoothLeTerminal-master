@@ -26,11 +26,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.ListFragment;
 
 import java.util.ArrayDeque;
@@ -295,7 +297,7 @@ public class DevicesFragment extends ListFragment implements ServiceConnection, 
         scanState = ScanState.NONE;
 
     }
-    // 항목이 눌러졌을 해당 주소를 가지고 SerialService를 만들어 deviceAddress와 함꼐 넘겨준다.
+    // 항목이 눌러졌을 해당 주소를 가지고 SerialService를 만들어 deviceAddress와 함께 넘겨준다.
 // initialStart로, 해당 BLE 이름을 광클 해도 최초 한번만 생성하도록 했다.
     @Override
     public void onListItemClick(@NonNull ListView l, @NonNull View v, int position, long id) {
@@ -309,14 +311,31 @@ public class DevicesFragment extends ListFragment implements ServiceConnection, 
             getActivity().startService(serviceIntent); // prevents service destroy on unbind from recreated activity caused by orientation change
             getActivity().bindService(new Intent(getActivity(), SerialService.class), this, Context.BIND_AUTO_CREATE);
             initialStart=false;
+
+// 블루투스 연결이 이루어지는 동안 기다렸다고 이전 화면으로 돌아간다. 현재 3초 생성해 노았는데 간혹 3초 넘게 걸리는 경우도 있다.
+            // Show progress bar to indicate shutting down
+            final ProgressBar progressBar = new ProgressBar(getActivity());
+            progressBar.setVisibility(View.VISIBLE);
+
+            // Add the progress bar to the view hierarchy
+            ViewGroup rootView = getActivity().findViewById(android.R.id.content);
+            rootView.addView(progressBar);
+
+            // Delayed closing of the fragment after 3 seconds
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    // Remove progress bar from the view hierarchy
+                    progressBar.setVisibility(View.GONE);
+                    rootView.removeView(progressBar);
+
+                    // Close the current fragment and go back to the previous fragment
+                    FragmentManager fragmentManager = requireActivity().getSupportFragmentManager();
+                    fragmentManager.popBackStack(); // Go back to the previous fragment
+                }
+            }, 3000); // 3000 milliseconds (3 seconds) delay
         }
     }
-    //    @Override
-//    public void onStop() {
-//        if(service != null && !getActivity().isChangingConfigurations())
-//            service.detach();
-//        super.onStop();
-//    }
     @Override
     public void onServiceConnected(ComponentName name, IBinder binder) {
         service = ((SerialService.SerialBinder) binder).getService();
