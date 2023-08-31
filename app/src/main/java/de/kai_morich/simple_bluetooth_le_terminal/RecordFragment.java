@@ -46,6 +46,7 @@ public class RecordFragment extends Fragment {
     private static final String PREFS_NAME = "Recordings";
     private static final String KEY_RECORDINGS = "recordings";
     private View previousView = null;
+    boolean ismode = false;
         @SuppressLint("MissingInflatedId")
         public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
              View view = inflater.inflate(R.layout.fragment_record,container,false);
@@ -79,10 +80,6 @@ public class RecordFragment extends Fragment {
                             previousView.setBackgroundColor(Color.TRANSPARENT);
                         }
                     }
-                    int firstVisiblePosition = listView.getFirstVisiblePosition();
-                    int lastVisiblePosition = listView.getLastVisiblePosition();
-                    Log.d("tag", String.valueOf(firstVisiblePosition));
-                    Log.d("tag", String.valueOf(lastVisiblePosition));
                     // Change the background color of the selected item
                     view.setBackgroundColor(Color.YELLOW);
                     // Save the position of the selected item
@@ -107,18 +104,11 @@ public class RecordFragment extends Fragment {
                     return true;
                 }
             });
-            int firstVisiblePosition = listView.getFirstVisiblePosition();
-            int lastVisiblePosition = listView.getLastVisiblePosition();
-            Log.d("tag", String.valueOf(firstVisiblePosition));
-            Log.d("tag", String.valueOf(lastVisiblePosition));
         return view;
     }
 
-
-
     //이 부분은 사용자가 선택한 녹음 파일을 앱을 껏다가 켜도 리스트뷰에 표시하기 위해 만든 코드입니다.
     private void initial(ListView listview){
-        boolean ismode;
         SharedPreferences sharedPreferences = getActivity().getSharedPreferences("test", getActivity().MODE_PRIVATE);
         selectedPosition = sharedPreferences.getInt("inputText", -1);
         ismode = sharedPreferences.getBoolean("input", false);
@@ -180,16 +170,31 @@ public class RecordFragment extends Fragment {
                     showTitleInputDialog();
                 }
                 dialog.cancel();
-                if (selectedPosition != -1) {
+                if (selectedPosition != -1&&ismode==true) {
                     View previousView = listview.getChildAt(selectedPosition);
                     if (previousView != null) {
                         previousView.setBackgroundColor(Color.TRANSPARENT);
                     }
                     selectedPosition++;
-                    View colored = listview.getChildAt(selectedPosition);
-                    colored.setBackgroundColor(Color.YELLOW);
+                    if(selectedPosition-1==listview.getLastVisiblePosition()){
+                        listView.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (selectedPosition != -1) {
+                                    listView.setItemChecked(selectedPosition, true);
+                                    listView.setSelection(selectedPosition);
+                                    View colored = listview.getChildAt(selectedPosition);
+                                    colored.setBackgroundColor(Color.YELLOW);
+                                }
+                            }
+                        });
+                    }
+                    else{
+                        View colored = listview.getChildAt(selectedPosition);
+                        colored.setBackgroundColor(Color.YELLOW);
+                    }
+                    adapter.notifyDataSetChanged();
                 }
-                adapter.notifyDataSetChanged();
             }
         });
         dialog.show();
