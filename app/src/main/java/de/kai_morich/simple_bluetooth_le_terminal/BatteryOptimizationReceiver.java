@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
+// 배터리 제한 없이 사용하도록 하는 리시버 생성
 public class BatteryOptimizationReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {

@@ -393,6 +393,7 @@ class SerialSocket extends BluetoothGattCallback {
                         public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
                             AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
                             float maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
+                            audioManager.setStreamVolume(AudioManager.STREAM_ALARM, (int)maxVolume, 0);
                             float volume = maxVolume / 15.0f; // Assuming maxVolume is 15
                             soundPool.play(soundID, volume, volume, 1, 0, 1.0f);
                         }
@@ -421,6 +422,7 @@ class SerialSocket extends BluetoothGattCallback {
                         public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
                             AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
                             float maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
+                            audioManager.setStreamVolume(AudioManager.STREAM_ALARM, (int)maxVolume, 0);
                             float volume = maxVolume / 15.0f; // Assuming maxVolume is 15
                             soundPool.play(soundID, volume, volume, 1, 0, 1.0f);
                         }

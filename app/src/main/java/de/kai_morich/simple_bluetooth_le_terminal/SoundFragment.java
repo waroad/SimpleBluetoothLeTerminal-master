@@ -23,6 +23,7 @@ public class SoundFragment extends Fragment {
     private ArrayList<String> songNames;
     private TypedArray songIds;
     private int selectedPosition = -1;
+    private View previousView = null;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -40,7 +41,7 @@ public class SoundFragment extends Fragment {
         ListView listView = view.findViewById(R.id.list_view);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_list_item_1, songNames);
         listView.setAdapter(adapter);
-
+        initial(listView);
         // Set the click listener for the list view
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -65,7 +66,27 @@ public class SoundFragment extends Fragment {
         });
         return view;
     }
-
+    private void initial(ListView listview){
+        boolean ismode;
+        SharedPreferences sharedPreferences = getActivity().getSharedPreferences("test", getActivity().MODE_PRIVATE);
+        selectedPosition = sharedPreferences.getInt("inputText", -1);
+        ismode = sharedPreferences.getBoolean("input", false);
+        if(ismode==false&&selectedPosition!=-1){
+            listview.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (selectedPosition != -1) {
+                        listview.setItemChecked(selectedPosition, true);
+                        listview.setSelection(selectedPosition);
+                        previousView = listview.getChildAt(selectedPosition - listview.getFirstVisiblePosition());
+                        if (previousView != null) {
+                            previousView.setBackgroundColor(Color.YELLOW);
+                        }
+                    }
+                }
+            });
+        }
+    }
     private void playSong(int position) {
         // Stop any currently playing song
         if (mediaPlayer != null) {
