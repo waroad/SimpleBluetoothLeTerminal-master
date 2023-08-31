@@ -438,6 +438,7 @@ class SerialSocket extends BluetoothGattCallback {
             }
         }
     }
+    //이 부분은 녹음 파일을 불러오는 부분입니다.
     private void loadRecordings() {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String recordingsString = prefs.getString(KEY_RECORDINGS, "");
@@ -448,10 +449,12 @@ class SerialSocket extends BluetoothGattCallback {
             }
         }
     }
+    //이 부분은 sharedpreferences에 저장한 변수를 다시 얻기위해 만든 함수입니다.
     public int getIntValue() {
         SharedPreferences sharedPreferences = context.getSharedPreferences("test", Context.MODE_PRIVATE);
         return sharedPreferences.getInt("inputText", 0);
     }
+    //이 부분도 sharedpreferences에 저장한 변수를 다시 얻기위해 만든 함수입니다.
     public Boolean getBooleanValue() {
         SharedPreferences sharedPreferences = context.getSharedPreferences("test", Context.MODE_PRIVATE);
         return sharedPreferences.getBoolean("input",false);

@@ -116,6 +116,7 @@ public class RecordFragment extends Fragment {
 
 
 
+    //이 부분은 사용자가 선택한 녹음 파일을 앱을 껏다가 켜도 리스트뷰에 표시하기 위해 만든 코드입니다.
     private void initial(ListView listview){
         boolean ismode;
         SharedPreferences sharedPreferences = getActivity().getSharedPreferences("test", getActivity().MODE_PRIVATE);
@@ -137,6 +138,7 @@ public class RecordFragment extends Fragment {
             });
         }
     }
+    // 이 부분은 녹음 중, 녹음 완료 다이어로그가 생성되는 코드입니다.
     private void showRecordDialog(ListView listview) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         LayoutInflater inflater = getLayoutInflater();
@@ -229,6 +231,7 @@ public class RecordFragment extends Fragment {
         dialog.setCanceledOnTouchOutside(false);
         dialog.show();
     }
+    //이 코드는 녹음 파일을 불러오기 위한 부분입니다.
     private void loadRecordings() {
         SharedPreferences prefs = getActivity().getSharedPreferences(PREFS_NAME, getContext().MODE_PRIVATE);
         String recordingsString = prefs.getString(KEY_RECORDINGS, "");
