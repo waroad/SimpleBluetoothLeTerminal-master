@@ -8,9 +8,7 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
-import android.media.SoundPool;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
@@ -23,6 +21,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import java.io.File;
@@ -39,18 +38,23 @@ public class RecordFragment extends Fragment {
     private ArrayAdapter<String> adapter;
     String timeStamp;
     Button recordenter;
+
+    //추가한 부분
+    private String fileName;
+    ListView listView;
     private int selectedPosition = -1;
+    private static final String PREFS_NAME = "Recordings";
+    private static final String KEY_RECORDINGS = "recordings";
         @SuppressLint("MissingInflatedId")
         public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
              View view = inflater.inflate(R.layout.fragment_record,container,false);
         // Request permission to record audio
         // Set up the list view
         songNames = new ArrayList<>();
-        ListView listView = view.findViewById(R.id.list_view);
+        listView = view.findViewById(R.id.list_view);
         adapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_list_item_1, songNames);
         listView.setAdapter(adapter);
         recordenter = view.findViewById(R.id.record_button);
-        // Load the saved recordings
         loadRecordings();
         //initial(listView);
             recordenter.setOnClickListener(new View.OnClickListener() {
@@ -74,6 +78,10 @@ public class RecordFragment extends Fragment {
                             previousView.setBackgroundColor(Color.TRANSPARENT);
                         }
                     }
+                    int firstVisiblePosition = listView.getFirstVisiblePosition();
+                    int lastVisiblePosition = listView.getLastVisiblePosition();
+                    Log.d("tag", String.valueOf(firstVisiblePosition));
+                    Log.d("tag", String.valueOf(lastVisiblePosition));
                     // Change the background color of the selected item
                     view.setBackgroundColor(Color.YELLOW);
                     // Save the position of the selected item
@@ -98,19 +106,61 @@ public class RecordFragment extends Fragment {
                     return true;
                 }
             });
+            int firstVisiblePosition = listView.getFirstVisiblePosition();
+            int lastVisiblePosition = listView.getLastVisiblePosition();
+            Log.d("tag", String.valueOf(firstVisiblePosition));
+            Log.d("tag", String.valueOf(lastVisiblePosition));
         return view;
     }
 
-    /*private void initial(ListView listView){
+    @Override
+    public void onStart() {
+        super.onStart();
+        Log.d("tag", "onstart");
+        int firstVisiblePosition = listView.getFirstVisiblePosition();
+        int lastVisiblePosition = listView.getLastVisiblePosition();
+        Log.d("tag", String.valueOf(firstVisiblePosition));
+        Log.d("tag", String.valueOf(lastVisiblePosition));
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        Log.d("tag", "onresume");
+        int firstVisiblePosition = listView.getFirstVisiblePosition();
+        int lastVisiblePosition = listView.getLastVisiblePosition();
+        Log.d("tag", String.valueOf(firstVisiblePosition));
+        Log.d("tag", String.valueOf(lastVisiblePosition));
+        //initial(listView);
+    }
+
+    private void initial(ListView listview){
         boolean ismode;
-        SharedPreferences sharedPreferences = getActivity().getSharedPreferences("test", Context.MODE_PRIVATE);
+        SharedPreferences sharedPreferences = getActivity().getSharedPreferences("test", getActivity().MODE_PRIVATE);
         selectedPosition = sharedPreferences.getInt("inputText", -1);
         ismode = sharedPreferences.getBoolean("input", false);
         if(ismode==true&&selectedPosition!=-1){
-            View colored = listView.getChildAt(selectedPosition);
-            colored.setBackgroundColor(Color.YELLOW);
+            int firstVisiblePosition = listview.getFirstVisiblePosition();
+            int lastVisiblePosition = listview.getLastVisiblePosition();
+            Log.d("tag", String.valueOf(firstVisiblePosition));
+            Log.d("tag", String.valueOf(lastVisiblePosition));
+            Log.d("tag", "wipi");
+            if (selectedPosition >= firstVisiblePosition && selectedPosition <= lastVisiblePosition) {
+                View colored = listview.getChildAt(selectedPosition - firstVisiblePosition);
+                if(colored==null){
+                    Log.d("tag", "NULL");
+                }
+                else{
+                    Log.d("tag", String.valueOf(selectedPosition));
+                    colored.setBackgroundColor(Color.YELLOW);
+                    adapter.notifyDataSetChanged();
+                }
+            }
+            else{
+                Log.d("tag", "Silla");
+            }
         }
-    }*/
+    }
     private void showRecordDialog(ListView listview) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         LayoutInflater inflater = getLayoutInflater();
@@ -136,7 +186,7 @@ public class RecordFragment extends Fragment {
             public void onClick(DialogInterface dialog, int which) {
                 if (mediaRecorder != null) {
                     stopRecording();
-                    songNames.remove(songNames.size()-1);
+                    songNames.remove(0);
                     adapter.notifyDataSetChanged();
                 }
                 dialog.cancel();
@@ -149,7 +199,7 @@ public class RecordFragment extends Fragment {
             public void onClick(View v) {
                 if (mediaRecorder != null) {
                     stopRecording();
-                    //showTitleInputDialog();
+                    showTitleInputDialog();
                 }
                 dialog.cancel();
                 if (selectedPosition != -1) {
@@ -171,16 +221,25 @@ public class RecordFragment extends Fragment {
     private void showTitleInputDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setTitle("제목 입력");
-
         final EditText input = new EditText(getActivity());
         input.setInputType(InputType.TYPE_CLASS_TEXT);
         builder.setView(input);
-
         builder.setPositiveButton("확인", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 String title = input.getText().toString();
-                songNames.add(0,title);
+                if (title.trim().isEmpty()) {
+                    // 입력이 공백인 경우
+                    dialog.cancel();
+                }
+                else {
+                    File oldFile = new File(getActivity().getFilesDir(), fileName);
+                    File newFile = new File(oldFile.getParentFile(), title + ".3gp");
+                    oldFile.renameTo(newFile);
+                    songNames.remove(0);
+                    songNames.add(0, title + ".3gp");
+                    adapter.notifyDataSetChanged();
+                }
             }
         });
         builder.setNegativeButton("취소", new DialogInterface.OnClickListener() {
@@ -194,16 +253,15 @@ public class RecordFragment extends Fragment {
         dialog.show();
     }
     private void loadRecordings() {
-        File path = getActivity().getFilesDir();
-        File[] files = path.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.getName().endsWith(".3gp")) {
-                    songNames.add(file.getName());
-                }
+        SharedPreferences prefs = getActivity().getSharedPreferences(PREFS_NAME, getContext().MODE_PRIVATE);
+        String recordingsString = prefs.getString(KEY_RECORDINGS, "");
+        if (!recordingsString.isEmpty()) {
+            String[] filePaths = recordingsString.split(",");
+            for (String filePath : filePaths) {
+                songNames.add(filePath);
             }
-            adapter.notifyDataSetChanged();
         }
+        adapter.notifyDataSetChanged();
     }
 
     private void startRecording() {
@@ -213,12 +271,13 @@ public class RecordFragment extends Fragment {
         mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
         File path = getActivity().getFilesDir();
         timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        File file = new File(path, "record" + timeStamp +(songNames.size() + 1)+ ".3gp");
+        fileName = "record" + timeStamp +(songNames.size() + 1)+ ".3gp";
+        File file = new File(path, fileName);
         mediaRecorder.setOutputFile(file.getAbsolutePath());
         try {
             mediaRecorder.prepare();
             mediaRecorder.start();
-            songNames.add(0,file.getName());
+            songNames.add(0,fileName);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -227,7 +286,7 @@ public class RecordFragment extends Fragment {
         mediaRecorder.stop();
         mediaRecorder.release();
         mediaRecorder = null;
-        //adapter.notifyDataSetChanged();
+        adapter.notifyDataSetChanged();
     }
 
     private void playSong(int position) {
@@ -323,5 +382,14 @@ public class RecordFragment extends Fragment {
             mediaPlayer.release();
             mediaPlayer = null;
         }
+        SharedPreferences prefs = getActivity().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        StringBuilder sb = new StringBuilder();
+        for (String filePath : songNames) {
+            sb.append(filePath).append(",");
+        }
+        sb.deleteCharAt(sb.length() - 1);
+        editor.putString(KEY_RECORDINGS, sb.toString());
+        editor.apply();
     }
 }

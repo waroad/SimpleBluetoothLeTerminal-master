@@ -427,27 +427,6 @@ class SerialSocket extends BluetoothGattCallback {
                 }
             }
 
-            /*
-            if (songPlayed == 0 && readCharacteristic.getStringValue(0).equals("start")) {
-                initializeSoundPool();
-                soundID = soundPoo
-                soundID = soundPool.load(context, R.raw.a, 1);
-                soundPool.setOnLoadCompleteListener((soundPool, sampleId, status) -> {
-                    if (status == 0) { // Success
-                        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-                        float maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
-                        float volume = maxVolume / 150.0f; // Assuming maxVolume is 15
-                        soundPool.play(soundID, volume, volume, 1, 0, 1.0f);
-                        songPlayed = 1;
-                    }
-                });
-            } else if (songPlayed == 1 && readCharacteristic.getStringValue(0).equals("stop")) {
-                soundPool.release(); // Release the current SoundPool
-                songPlayed = 0;
-            } else if (readCharacteristic.getStringValue(0).equals("disconnect") && first_send==1) {
-                disconnect();
-                first_send=0;
-            }*/
             if (readCharacteristic.getStringValue(0).equals("disconnect") && first_send==1) {
                 disconnect();
                 first_send=0;
