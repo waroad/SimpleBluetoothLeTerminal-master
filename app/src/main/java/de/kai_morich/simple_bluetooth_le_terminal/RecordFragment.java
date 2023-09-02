@@ -84,13 +84,8 @@ public class RecordFragment extends Fragment {
                     view.setBackgroundColor(Color.YELLOW);
                     // Save the position of the selected item
                     selectedPosition = position;
+                    ismode = true;
                     playSong(position);
-                    SharedPreferences sharedPreferences= getActivity().getSharedPreferences("test",getActivity().MODE_PRIVATE);    // test 이름의 기본모드 설정
-                    SharedPreferences.Editor editor= sharedPreferences.edit(); //sharedPreferences를 제어할 editor를 선언
-                    editor.putInt("inputText",position); // key,value 형식으로 저장
-                    editor.putBoolean("input",true);
-                    editor.commit();
-                    Log.d("tag","why");
                 }
             });
 
@@ -100,6 +95,7 @@ public class RecordFragment extends Fragment {
                     if(selectedPosition!=position){
                         showDeleteDialog(position,listView);
                     }
+                    Log.d("sillasize", String.valueOf(listView.getLastVisiblePosition()));
                     // Save the position of the selected item
                     return true;
                 }
@@ -109,9 +105,11 @@ public class RecordFragment extends Fragment {
 
     //이 부분은 사용자가 선택한 녹음 파일을 앱을 껏다가 켜도 리스트뷰에 표시하기 위해 만든 코드입니다.
     private void initial(ListView listview){
-        SharedPreferences sharedPreferences = getActivity().getSharedPreferences("test", getActivity().MODE_PRIVATE);
+        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(PREFS_NAME, getActivity().MODE_PRIVATE);
         selectedPosition = sharedPreferences.getInt("inputText", -1);
         ismode = sharedPreferences.getBoolean("input", false);
+        Log.d("silla", String.valueOf(selectedPosition));
+        Log.d("silla", String.valueOf(ismode));
         if(ismode==true&&selectedPosition!=-1){
             listView.post(new Runnable() {
                 @Override
@@ -192,7 +190,7 @@ public class RecordFragment extends Fragment {
                     else{
                         View colored = listview.getChildAt(selectedPosition);
                         colored.setBackgroundColor(Color.YELLOW);
-                    }
+                    }// key,value 형식으로 저장
                     adapter.notifyDataSetChanged();
                 }
             }
@@ -331,19 +329,21 @@ public class RecordFragment extends Fragment {
             public void onClick(View v) {
                 deleteSong(position);
                 dialog.cancel();
-                if (selectedPosition != -1) {
-                    View previousView = listView.getChildAt(selectedPosition);
-                    if (previousView != null) {
-                        previousView.setBackgroundColor(Color.TRANSPARENT);
+                if(ismode==true){
+                    if (selectedPosition != -1) {
+                        View previousView = listView.getChildAt(selectedPosition);
+                        if (previousView != null) {
+                            previousView.setBackgroundColor(Color.TRANSPARENT);
+                        }
                     }
-                }
-                if(selectedPosition>position){
-                    selectedPosition--;
-                }
-                if(selectedPosition!=-1){
-                    View colored = listView.getChildAt(selectedPosition);
-                    Log.d("tag","long");
-                    colored.setBackgroundColor(Color.YELLOW);
+                    if(selectedPosition>position){
+                        selectedPosition--;
+                    }
+                    if(selectedPosition!=-1){
+                        View colored = listView.getChildAt(selectedPosition);
+                        colored.setBackgroundColor(Color.YELLOW);
+                        adapter.notifyDataSetChanged();;
+                    }
                 }
             }
         });
@@ -379,6 +379,8 @@ public class RecordFragment extends Fragment {
         }
         sb.deleteCharAt(sb.length() - 1);
         editor.putString(KEY_RECORDINGS, sb.toString());
-        editor.apply();
+        editor.putInt("inputText",selectedPosition);
+        editor.putBoolean("input",ismode);
+        editor.commit();
     }
 }

@@ -394,7 +394,7 @@ class SerialSocket extends BluetoothGattCallback {
                             float maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
                             audioManager.setStreamVolume(AudioManager.STREAM_ALARM, (int)maxVolume, 0);
                             float volume = maxVolume / 15.0f; // Assuming maxVolume is 15
-                            soundPool.play(soundID, volume, volume, 1, 0, 1.0f);
+                            soundPool.play(soundID, volume, volume, 1, -1, 1.0f);
                         }
                     });
                 } else if (soundID != 0&& readCharacteristic.getStringValue(0).equals("stop")) {
@@ -423,7 +423,7 @@ class SerialSocket extends BluetoothGattCallback {
                             float maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
                             audioManager.setStreamVolume(AudioManager.STREAM_ALARM, (int)maxVolume, 0);
                             float volume = maxVolume / 15.0f; // Assuming maxVolume is 15
-                            soundPool.play(soundID, volume, volume, 1, 0, 1.0f);
+                            soundPool.play(soundID, volume, volume, 1, -1, 1.0f);
                         }
                     });
                 } else if (soundID != 0 && readCharacteristic.getStringValue(0).equals("stop")) {

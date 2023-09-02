@@ -23,6 +23,8 @@ public class SoundFragment extends Fragment {
     private ArrayList<String> songNames;
     private TypedArray songIds;
     private int selectedPosition = -1;
+    private boolean ismode = false;
+    private static final String PREFS_NAME = "Recordings";
     private View previousView = null;
 
     @Override
@@ -57,19 +59,14 @@ public class SoundFragment extends Fragment {
                 view.setBackgroundColor(Color.YELLOW);
                 // Save the position of the selected item
                 selectedPosition = position;
-                SharedPreferences sharedPreferences= getActivity().getSharedPreferences("test",getActivity().MODE_PRIVATE);    // test 이름의 기본모드 설정
-                SharedPreferences.Editor editor= sharedPreferences.edit(); //sharedPreferences를 제어할 editor를 선언
-                editor.putInt("inputText",position); // key,value 형식으로 저장
-                editor.putBoolean("input",false);
-                editor.commit();
+                ismode = false;
             }
         });
         return view;
     }
     //이 부분은 사용자가 선택할 칸을 표시해주기 위해 존재하는 부분입니다.
     private void initial(ListView listview){
-        boolean ismode;
-        SharedPreferences sharedPreferences = getActivity().getSharedPreferences("test", getActivity().MODE_PRIVATE);
+        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(PREFS_NAME, getActivity().MODE_PRIVATE);
         selectedPosition = sharedPreferences.getInt("inputText", -1);
         ismode = sharedPreferences.getBoolean("input", false);
         if(ismode==false&&selectedPosition!=-1){
@@ -119,7 +116,11 @@ public class SoundFragment extends Fragment {
             mediaPlayer.release();
             mediaPlayer = null;
         }
-
+        SharedPreferences sharedPreferences= getActivity().getSharedPreferences(PREFS_NAME,getActivity().MODE_PRIVATE);    // test 이름의 기본모드 설정
+        SharedPreferences.Editor editor= sharedPreferences.edit(); //sharedPreferences를 제어할 editor를 선언
+        editor.putInt("inputText",selectedPosition); // key,value 형식으로 저장
+        editor.putBoolean("input",ismode);
+        editor.commit();
         // Recycle the typed array
         songIds.recycle();
     }
